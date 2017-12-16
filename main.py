@@ -53,16 +53,11 @@ async def on_message(message):
     await dispatcher.dispatch(message)
 
 # Initialization complete
-
 misc_utils.printInviteLink(config)
-while True:
-    try:
-        client.run(config.getToken())
-    except Exception as exc:
-        logger.error('Handled top level exception: %r', exc)
-        misc_utils.logTraceback(logger)
-    finally:
-        client.close()
-    logger.info('Restarting')
-    # Attempt to restart after 60 seconds
-    time.sleep(60)
+try:
+    client.run(config.getToken())
+except Exception as exc:
+    logger.error('Handled top level exception: %r', exc)
+    misc_utils.logTraceback(logger)
+finally:
+    client.close()
