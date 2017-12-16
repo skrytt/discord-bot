@@ -1,0 +1,9 @@
+{
+  "bot_client_id": 1234567890,
+  "bot_token": "AsDfGhJkL_",
+  "database": {
+    "host": "localhost",
+    "port": 6379
+  },
+  "log_level": "INFO"
+}
