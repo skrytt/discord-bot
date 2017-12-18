@@ -43,10 +43,6 @@ class Dispatcher(object):
     async def dispatch(self, message):
         ''' Try to dispatch message to an appropriate handler instance.
         '''
-        # Bot loopback protection
-        if message.author == self.config.getClientId():
-            return
-
         # Get prefix to use
         prefix = DEFAULT_COMMAND_PREFIX
         try:

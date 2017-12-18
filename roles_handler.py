@@ -1,3 +1,7 @@
+''' Command handler enabling server members to assign or remove roles to/from
+    themselves. The role names are configured separately by the server admin.
+'''
+
 import discord
 
 import handler_base

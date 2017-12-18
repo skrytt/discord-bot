@@ -1,33 +1,46 @@
+''' This module defines:
+    - A ServerData class, intended to contain data related to a
+      particular Discord server;
+    - A ServerDataMap class, intended as the access point for ServerData objects.
+'''
+
 import time
 
 import discord
 
+import member_utils
+
 COMMAND_PREFIX_HASH_KEY = 'command_prefix'
 MEMBER_ROLE_HASH_KEY = 'member_role'
 OFFICER_ROLE_HASH_KEY = 'officer_role'
+NOTIFICATION_CHANNEL_NAME_HASH_KEY = 'notification_channel'
 MEMBER_ASSIGNABLE_ROLE_NAMES_SET_KEY = 'member_assignable_role_names'
 
 SERVER_DEFAULT_COMMAND_PREFIX = '!'
 
 class ServerDataMap(object):
-    def __init__(self, database):
+    def __init__(self, logger, database):
+        self.logger = logger
         self.database = database
         self._map = {}
 
     def get(self, server):
         server_data = self._map.setdefault(
             server.id,
-            ServerData(self.database, server))
+            ServerData(self.logger, self.database, server))
         return server_data
 
 class ServerData(object):
-    ''' Collates data about a server from its discord object and from our database.
+    ''' Collates data about a particular Discord server from its discord object
+        and from our database.
     '''
-    def __init__(self, database, server):
+    def __init__(self, logger, database, server):
+        self.logger = logger
         self.database = database
         self.server = server
         self._hash = {}
         self._member_assignable_roles = []
+        self.member_data_map = member_utils.MemberDataMap(logger, database)
         self.update()
 
     def update(self):
@@ -116,6 +129,17 @@ class ServerData(object):
 
     def setOfficerRole(self, role_name):
         data = {OFFICER_ROLE_HASH_KEY: role_name}
+        self.database.setServerSpecificHashData(self.server.id, data)
+        self.update()
+
+    def getNotificationChannelName(self):
+        try:
+            return self._hash.get(NOTIFICATION_CHANNEL_NAME_HASH_KEY.encode('utf-8')).decode('utf-8')
+        except Exception:
+            return None
+
+    def setNotificationChannelName(self, channel_name):
+        data = {NOTIFICATION_CHANNEL_NAME_HASH_KEY: channel_name}
         self.database.setServerSpecificHashData(self.server.id, data)
         self.update()
 

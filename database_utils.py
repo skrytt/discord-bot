@@ -5,9 +5,9 @@
 import redis
 
 DISCORD_SERVER_KEY = 'discord_server'
-DISCORD_USER_KEY = 'discord_user'
+DISCORD_SERVER_MEMBER_KEY = 'discord_server_member'
 MULTI_SERVER_SET_KEY = 'multiserver'
-MULTI_USER_SET_KEY = 'multiuser'
+MULTI_MEMBER_SET_KEY = 'multimember'
 HASH_KEY = 'hash'
 SET_KEY = 'set'
 
@@ -37,22 +37,22 @@ class Database(object):
     def getServerSpecificSetMembers(self, server_id, set_name):
         return self._db.smembers(_makeKey(DISCORD_SERVER_KEY, SET_KEY, set_name, server_id))
 
-    # User-specific data
+    # Member-specific data
 
-    def getUserSpecificHashData(self, user_id):
-        return self._db.hgetall(_makeKey(DISCORD_USER_KEY, HASH_KEY, user_id))
+    def getMemberSpecificHashData(self, server_id, member_id):
+        return self._db.hgetall(_makeKey(DISCORD_SERVER_MEMBER_KEY, HASH_KEY, server_id, member_id))
 
-    def setUserSpecificHashData(self, user_id, user_data_dict):
-        return self._db.hmset(_makeKey(DISCORD_USER_KEY, HASH_KEY, user_id), user_data_dict)
+    def setMemberSpecificHashData(self, server_id, member_id, member_data_dict):
+        return self._db.hmset(_makeKey(DISCORD_SERVER_MEMBER_KEY, HASH_KEY, server_id, member_id), member_data_dict)
 
-    def addItemToUserSpecificSet(self, user_id, set_name, item):
-        return self._db.sadd(_makeKey(DISCORD_USER_KEY, SET_KEY, set_name, user_id), item)
+    def addItemToMemberSpecificSet(self, server_id, member_id, set_name, item):
+        return self._db.sadd(_makeKey(DISCORD_SERVER_MEMBER_KEY, SET_KEY, set_name, server_id, member_id), item)
 
-    def removeItemFromUserSpecificSet(self, user_id, set_name, item):
-        return self._db.srem(_makeKey(DISCORD_USER_KEY, SET_KEY, set_name, user_id), item)
+    def removeItemFromMemberSpecificSet(self, server_id, member_id, set_name, item):
+        return self._db.srem(_makeKey(DISCORD_SERVER_MEMBER_KEY, SET_KEY, set_name, server_id, member_id), item)
 
-    def getUserSpecificSetMembers(self, user_id, set_name):
-        return self._db.smembers(_makeKey(DISCORD_USER_KEY, SET_KEY, set_name, user_id))
+    def getMemberSpecificSetMembers(self, server_id, member_id, set_name):
+        return self._db.smembers(_makeKey(DISCORD_SERVER_MEMBER_KEY, SET_KEY, set_name, server_id, member_id))
 
     # Sets of servers
 
@@ -65,13 +65,13 @@ class Database(object):
     def getMultiServerSetMembers(self, set_key_suffix):
         return self._db.smembers(_makeKey(MULTI_SERVER_SET_KEY, set_key_suffix))
 
-    # Sets of users
+    # Sets of members
 
-    def addUserToMultiUserSet(self, set_key_suffix, user_id):
-        return self._db.sadd(_makeKey(MULTI_USER_SET_KEY, set_key_suffix), user_id)
+    def addMemberToMultiMemberSet(self, set_key_suffix, member_id):
+        return self._db.sadd(_makeKey(MULTI_MEMBER_SET_KEY, set_key_suffix), member_id)
 
-    def removeUserFromMultiUserSet(self, set_key_suffix, user_id):
-        return self._db.srem(_makeKey(MULTI_USER_SET_KEY, set_key_suffix), user_id)
+    def removeMemberFromMultiMemberSet(self, set_key_suffix, member_id):
+        return self._db.srem(_makeKey(MULTI_MEMBER_SET_KEY, set_key_suffix), member_id)
 
-    def getMultiUserSetMembers(self, set_key_suffix):
-        return self._db.smembers(_makeKey(MULTI_USER_SET_KEY, set_key_suffix))
+    def getMultiMemberSetMembers(self, set_key_suffix):
+        return self._db.smembers(_makeKey(MULTI_MEMBER_SET_KEY, set_key_suffix))

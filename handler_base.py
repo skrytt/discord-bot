@@ -1,3 +1,6 @@
+''' Module providing a base class for command handlers.
+'''
+
 class HandlerBase(object):
     ''' Base class for command handlers.
     '''

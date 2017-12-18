@@ -2,7 +2,6 @@
 
 import logging
 import sys
-import time
 
 import discord
 
@@ -11,6 +10,8 @@ import dispatcher_utils
 import misc_utils
 import database_utils
 import server_utils
+
+import stream_notification_utils
 
 if __name__ != '__main__':
     print('Importing of this module is unsupported')
@@ -34,9 +35,12 @@ misc_utils.setLogLevel(logger, config)
 
 database = database_utils.Database(config)
 
-server_data_map = server_utils.ServerDataMap(database)
+server_data_map = server_utils.ServerDataMap(logger, database)
 
 dispatcher = dispatcher_utils.Dispatcher(logger, config, client, server_data_map, database)
+
+stream_notifications = stream_notification_utils.StreamNotifications(
+    logger, config, client, server_data_map)
 
 @client.event
 async def on_ready():
@@ -50,7 +54,17 @@ async def on_ready():
 async def on_message(message):
     ''' Called whenever a message is received from Discord.
     '''
+    # Bot loopback protection
+    if message.author == config.getClientId():
+        return
+    # Dispatch command
     await dispatcher.dispatch(message)
+
+@client.event
+async def on_member_update(member_before, member_after):
+    ''' Called when a Member updates their profile.
+    '''
+    await stream_notifications.onMemberUpdate(member_before, member_after)
 
 # Initialization complete
 misc_utils.printInviteLink(config)
