@@ -49,15 +49,18 @@ class MemberData(object):
         '''
         # Make sure we didn't already advertise a stream for this member recently
         last_stream_notify_time = self.getLastStreamNotifyTime()
-        if not last_stream_notify_time:
-            return
-        time_since_last_stream = time.time() - last_stream_notify_time
-        if time_since_last_stream < STREAM_ADVERTISE_COOLDOWN:
+        if last_stream_notify_time:
+            time_since_last_stream = time.time() - last_stream_notify_time
+            if time_since_last_stream < STREAM_ADVERTISE_COOLDOWN:
+                self.logger.debug('member_utils.MemberData.shouldAdvertiseStream: '
+                                  'Last stream notification was %f seconds ago, don\'t advertise',
+                                  time_since_last_stream)
+                return False
+            else:
+                self.logger.debug('member_utils.MemberData.shouldAdvertiseStream: '
+                                  'Last stream notification was %f seconds ago, advertise',
+                                  time_since_last_stream)
+        else:
             self.logger.debug('member_utils.MemberData.shouldAdvertiseStream: '
-                              'Last stream notification was %f seconds ago, don\'t advertise',
-                              time_since_last_stream)
-            return False
-        self.logger.debug('member_utils.MemberData.shouldAdvertiseStream: '
-                          'Last stream notification was %f seconds ago, advertise',
-                          time_since_last_stream)
+                              'First stream for this member, advertise')
         return True

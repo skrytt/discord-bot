@@ -15,6 +15,24 @@ class HandlerBase(object):
         self.client = client
         self.server_data_map = server_data_map
 
+    async def permissions(self, message):
+        ''' Return True if the user has permission to perform this action,
+            False otherwise.
+        '''
+        author = message.author
+        server = message.server
+        server_data = self.server_data_map.get(server)
+
+        # 1. This command is usable in servers only.
+        if not server:
+            return False
+
+        # 2. This command is usable by server members with the Member role only.
+        if not server_data.userHasMemberPermissions(author):
+            return False
+
+        return True
+
     async def apply(self, message):
         ''' Override for each implementation of HandlerBase.
             Called whenever the dispatcher wants us to handle a message.

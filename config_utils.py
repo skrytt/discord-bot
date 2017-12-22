@@ -4,8 +4,6 @@
 import json
 import os
 
-import misc_utils
-
 CONFIG_JSON_FILE_ENVVAR = 'DISCORD_BOT_CONFIG_JSON_FILE'
 BOT_CLIENT_ID_KEY = 'bot_client_id'
 BOT_TOKEN_KEY = 'bot_token'
@@ -44,6 +42,7 @@ class Config(object):
         ''' Load the JSON configuration from disk.
             Return True if successful, False otherwise.
         '''
+        self.logger.debug('In config_utils.Config.load')
         config_json_file_path = os.environ.get(
             CONFIG_JSON_FILE_ENVVAR,
             '/etc/discordbot/config.json'

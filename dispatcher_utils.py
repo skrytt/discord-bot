@@ -1,7 +1,5 @@
 ''' Class for dispatching incoming messages to appropriate handlers.
 '''
-import server_utils
-
 # Command handlers
 import roles_handler
 import server_admin_handler
@@ -59,12 +57,14 @@ class Dispatcher(object):
         if not message.content.startswith(prefix):
             return
 
+        self.logger.debug('dispatcher_utils.Dispatcher.dispatch: Passed prefix check')
         # Get first arg for decision making
         message_content_args = message.content.split()
         first_arg = message_content_args[0].lstrip(prefix)
 
         if first_arg == 'help':
             # request for help. check following args for details
+            self.logger.debug('dispatcher_utils.Dispatcher.dispatch: Help command received')
             handler = None
             try:
                 second_arg = message_content_args[1]
@@ -73,10 +73,12 @@ class Dispatcher(object):
             except Exception:
                 pass
             if handler:
+                self.logger.debug('dispatcher_utils.Dispatcher.dispatch: Dispatching help command to handler')
                 await handler.help(message)
                 return
 
             # if we got here, it's a general help request so print supported commands
+            self.logger.debug('dispatcher_utils.Dispatcher.dispatch: Handling top-level help command')
             await self.client.send_message(
                 message.channel,
                 'Supported commands: %s' % (
@@ -88,5 +90,9 @@ class Dispatcher(object):
         # Not a help request, handle a real command
         handler = (self._command_handler_map.get(first_arg) or
                    self._hidden_command_handler_map.get(first_arg))
-        if handler is not None:
-            await handler.apply(message)
+        if handler is None:
+            self.logger.debug('dispatcher_utils.Dispatcher.dispatch: Can\'t find handler for command')
+            return
+
+        self.logger.debug('dispatcher_utils.Dispatcher.dispatch: Dispatching real command to handler')
+        await handler.apply(message)

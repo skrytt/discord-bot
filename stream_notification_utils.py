@@ -9,7 +9,7 @@ class StreamNotifications(object):
     def isMemberStartingToStream(self, member_before, member_after):
         ''' Return True if the member just began streaming, or False otherwise.
         '''
-        self.logger.debug('In stream_notification_utils.isMemberStartingToStream')
+        self.logger.debug('In stream_notification_utils.StreamNotifications.isMemberStartingToStream')
         try:
             new_game_type = member_after.game.type
         except Exception:
