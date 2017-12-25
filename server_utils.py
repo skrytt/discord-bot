@@ -172,3 +172,16 @@ class ServerData(object):
             if channel.name == name and channel.type == discord.ChannelType.text:
                 return channel
         return None
+
+    def addUserToServerAccountSet(self, account_type, user):
+        assert account_type in member_utils.getMemberSettableAccountTypes()
+        self.database.addItemToServerSpecificSet(self.server.id, account_type, user.id)
+        self.update()
+
+    def removeUserFromServerAccountSet(self, account_type, user):
+        assert account_type in member_utils.getMemberSettableAccountTypes()
+        self.database.removeItemFromServerSpecificSet(self.server.id, account_type, user.id)
+        self.update()
+
+    def getAccountsByType(self, account_type):
+        return self.database.getServerSpecificSetMembers(self.server.id, account_type)

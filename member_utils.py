@@ -6,6 +6,9 @@ LAST_STREAM_NOTIFY_TIME_HASH_KEY = 'last_stream_notify_time'
 
 STREAM_ADVERTISE_COOLDOWN = 21600 # 6 hours
 
+def getMemberSettableAccountTypes():
+    return ['steamid', 'battletag']
+
 class MemberDataMap(object):
     def __init__(self, logger, database):
         self.logger = logger
@@ -31,6 +34,25 @@ class MemberData(object):
     def update(self):
         ''' Ensure data consistency with the database. '''
         self._hash = self.database.getMemberSpecificHashData(self.member.server.id, self.member.id)
+
+    def getMemberAccountId(self, account_type):
+        assert account_type in ('steamid', 'battletag')
+        try:
+            return self._hash.get(account_type.encode('utf-8')).decode('utf-8')
+        except Exception:
+            return None
+
+    def setMemberAccountId(self, account_type, account_id):
+        assert account_type in ('steamid', 'battletag')
+        data = {account_type: account_id}
+        self.database.setMemberSpecificHashData(self.member.server.id, self.member.id, data)
+        self.update()
+
+    def unsetMemberAccountId(self, account_type):
+        assert account_type in ('steamid', 'battletag')
+        self.database.unsetMemberSpecificHashData(self.member.server.id, self.member.id, account_type)
+        self.update()
+
 
     def getLastStreamNotifyTime(self):
         try:

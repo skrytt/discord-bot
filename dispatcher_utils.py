@@ -1,6 +1,7 @@
 ''' Class for dispatching incoming messages to appropriate handlers.
 '''
 # Command handlers
+import account_handler
 import roles_handler
 import server_admin_handler
 
@@ -21,6 +22,8 @@ class Dispatcher(object):
         self._command_handler_map = {}
         self._hidden_command_handler_map = {}
 
+        self.registerHandler(
+            account_handler.AccountHandler(self, logger, config, client, server_data_map))
         self.registerHandler(
             roles_handler.RolesHandler(self, logger, config, client, server_data_map))
         self.registerHandler(

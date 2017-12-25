@@ -45,6 +45,9 @@ class Database(object):
     def setMemberSpecificHashData(self, server_id, member_id, member_data_dict):
         return self._db.hmset(_makeKey(DISCORD_SERVER_MEMBER_KEY, HASH_KEY, server_id, member_id), member_data_dict)
 
+    def unsetMemberSpecificHashData(self, server_id, member_id, key):
+        return self._db.hdel(_makeKey(DISCORD_SERVER_MEMBER_KEY, HASH_KEY, server_id, member_id), [key])
+
     def addItemToMemberSpecificSet(self, server_id, member_id, set_name, item):
         return self._db.sadd(_makeKey(DISCORD_SERVER_MEMBER_KEY, SET_KEY, set_name, server_id, member_id), item)
 
