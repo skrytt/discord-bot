@@ -4,6 +4,7 @@
 import account_handler
 import roles_handler
 import server_admin_handler
+import twitter_handler
 
 DEFAULT_COMMAND_PREFIX = '!'
 
@@ -23,11 +24,10 @@ class Dispatcher(object):
         self._hidden_command_handler_map = {}
 
         self.registerHandler(
-            account_handler.AccountHandler(self, logger, config, client, server_data_map))
-        self.registerHandler(
-            roles_handler.RolesHandler(self, logger, config, client, server_data_map))
-        self.registerHandler(
             server_admin_handler.ServerAdminHandler(self, logger, config, client, server_data_map))
+
+        self.registerHandler(
+            twitter_handler.TwitterHandler(self, logger, config, client, server_data_map))
 
     def registerHandler(self, handler):
         ''' Map an iterable of commands to a handler.
@@ -52,9 +52,10 @@ class Dispatcher(object):
                 server_data = self.server_data_map.get(server)
                 prefix = server_data.getCommandPrefix()
         except Exception as exc:
+            # Notify the server owner when unhandled exceptions propagate to here.
+            # This means there is a bug in the handler!
             if server:
                 await self.client.send_message(server.owner, exc)
-            #pass # Keep the default prefix
 
         # Prefix check
         if not message.content.startswith(prefix):

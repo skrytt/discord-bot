@@ -70,7 +70,7 @@ class RolesHandler(handler_base.HandlerBase):
         if not role:
             await self.client.send_message(
                 message.channel,
-                'Please ask Skrytt to create this role!'
+                'Role needs to be created in the Discord server!'
             )
             return
 

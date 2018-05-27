@@ -5,7 +5,6 @@
 import redis
 
 DISCORD_SERVER_KEY = 'discord_server'
-DISCORD_SERVER_MEMBER_KEY = 'discord_server_member'
 MULTI_SERVER_SET_KEY = 'multiserver'
 MULTI_MEMBER_SET_KEY = 'multimember'
 HASH_KEY = 'hash'
@@ -36,26 +35,6 @@ class Database(object):
 
     def getServerSpecificSetMembers(self, server_id, set_name):
         return self._db.smembers(_makeKey(DISCORD_SERVER_KEY, SET_KEY, set_name, server_id))
-
-    # Member-specific data
-
-    def getMemberSpecificHashData(self, server_id, member_id):
-        return self._db.hgetall(_makeKey(DISCORD_SERVER_MEMBER_KEY, HASH_KEY, server_id, member_id))
-
-    def setMemberSpecificHashData(self, server_id, member_id, member_data_dict):
-        return self._db.hmset(_makeKey(DISCORD_SERVER_MEMBER_KEY, HASH_KEY, server_id, member_id), member_data_dict)
-
-    def unsetMemberSpecificHashData(self, server_id, member_id, key):
-        return self._db.hdel(_makeKey(DISCORD_SERVER_MEMBER_KEY, HASH_KEY, server_id, member_id), [key])
-
-    def addItemToMemberSpecificSet(self, server_id, member_id, set_name, item):
-        return self._db.sadd(_makeKey(DISCORD_SERVER_MEMBER_KEY, SET_KEY, set_name, server_id, member_id), item)
-
-    def removeItemFromMemberSpecificSet(self, server_id, member_id, set_name, item):
-        return self._db.srem(_makeKey(DISCORD_SERVER_MEMBER_KEY, SET_KEY, set_name, server_id, member_id), item)
-
-    def getMemberSpecificSetMembers(self, server_id, member_id, set_name):
-        return self._db.smembers(_makeKey(DISCORD_SERVER_MEMBER_KEY, SET_KEY, set_name, server_id, member_id))
 
     # Sets of servers
 
