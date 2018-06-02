@@ -16,6 +16,9 @@ OFFICER_ROLE_HASH_KEY = 'officer_role'
 NOTIFICATION_CHANNEL_NAME_HASH_KEY = 'notification_channel'
 MEMBER_ASSIGNABLE_ROLE_NAMES_SET_KEY = 'member_assignable_role_names'
 
+TWITTER_LIST_OWNER_DISPLAY_NAME_KEY = 'twitter_list_owner_display_name'
+TWITTER_LIST_SLUG_KEY = 'twitter_list_slug'
+
 SERVER_DEFAULT_COMMAND_PREFIX = '!'
 
 class ServerDataMap(object):
@@ -140,6 +143,26 @@ class ServerData(object):
 
     def setNotificationChannelName(self, channel_name):
         data = {NOTIFICATION_CHANNEL_NAME_HASH_KEY: channel_name}
+        self.database.setServerSpecificHashData(self.server.id, data)
+        self.update()
+
+    def getTwitterListData(self):
+        try:
+            data = {
+                TWITTER_LIST_OWNER_DISPLAY_NAME_KEY: self._hash.get(
+                    TWITTER_LIST_OWNER_DISPLAY_NAME_KEY.encode('utf-8')).decode('utf-8'),
+                TWITTER_LIST_SLUG_KEY: self._hash.get(
+                    TWITTER_LIST_SLUG_KEY.encode('utf-8')).decode('utf-8')
+            }
+            return data
+        except Exception:
+            return None
+
+    def setTwitterListData(self, owner_display_name, slug):
+        data = {
+            TWITTER_LIST_OWNER_DISPLAY_NAME_KEY: owner_display_name,
+            TWITTER_LIST_SLUG_KEY: slug
+        }
         self.database.setServerSpecificHashData(self.server.id, data)
         self.update()
 

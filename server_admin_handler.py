@@ -10,7 +10,8 @@ import server_utils
 USAGE_MSG = 'Ask Skrytt for usage details of this command.'
 
 class ServerAdminHandler(handler_base.HandlerBase):
-    commands = ['setcommandprefix', 'setmemberrole', 'setnotificationchannel']
+    commands = ['setcommandprefix', 'setmemberrole', 'setnotificationchannel', 
+            'settwitterlistdata']
     hidden = True
 
     def permissions(self, message):
@@ -48,6 +49,8 @@ class ServerAdminHandler(handler_base.HandlerBase):
             # Command to allow server admins to set the command prefix
             if command == 'setcommandprefix':
                 prefix = args[1]
+                if not prefix:
+                    return
                 server_data.setCommandPrefix(prefix)
                 await self.client.send_message(message.channel, 'Command prefix updated!')
 
@@ -55,6 +58,8 @@ class ServerAdminHandler(handler_base.HandlerBase):
             # This is required to use commands which are "member-only".
             elif command == 'setmemberrole':
                 role_name = args[1]
+                if not role_name:
+                    return
                 server_data.setMemberRole(role_name)
                 await self.client.send_message(message.channel, 'Member role name updated!')
 
@@ -62,10 +67,23 @@ class ServerAdminHandler(handler_base.HandlerBase):
             # the bot to broadcast notifications to.
             elif command == 'setnotificationchannel':
                 channel_name = args[1]
+                if not channel_name:
+                    return
                 server_data.setNotificationChannelName(channel_name)
                 await self.client.send_message(
                     message.channel,
                     'Notification channel name updated!'
+                )
+
+            elif command == 'settwitterlistdata':
+                owner_screen_name = args[1]
+                list_slug = args[2]
+                if not owner_screen_name or not list_slug:
+                    return
+                server_data.setTwitterListData(owner_screen_name, list_slug)
+                await self.client.send_message(
+                    message.channel,
+                    'Twitter list data updated!'
                 )
 
         except Exception as exc:

@@ -5,5 +5,11 @@
     "host": "localhost",
     "port": 6379
   },
+  "twitter": {
+    "consumer_key": "asdf",
+    "consumer_secret": "ghjkl",
+    "access_token": "qwert",
+    "access_token_secret": "yuiop"
+  },
   "log_level": "INFO"
 }
