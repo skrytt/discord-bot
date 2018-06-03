@@ -341,7 +341,6 @@ class TwitterListSampler(object):
         return (list_data["member_count"], None)
 
     def _getWeightedResults(self, list_owner, list_slug, tweet_list):
-
         lists_key = (list_owner, list_slug)
         list_weighting_data = self.list_map.setdefault(lists_key, {})
         screen_name_weight_map = list_weighting_data.setdefault("screen_name", {})
@@ -425,8 +424,10 @@ class TwitterListSampler(object):
         return None
 
     async def getTweets(self, list_owner, list_slug):
-        ''' On success, returns list of two part tuples: [(tweet_url, weighted_score), ...]
-            On failure, returns None instead.
+        ''' On success, returns tuple where first item is a list of two part tuples like:
+                    [(tweet_url, weighted_score), ...]
+                second item is None.
+            On failure, returns None instead of the list and the second item is the error reason.
         '''
         tweet_list, error_reason = await self.twitter_api_client.getTweetsFromList(
                 list_owner, list_slug, max_count=self.max_tweets_to_consider)
