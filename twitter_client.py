@@ -345,6 +345,9 @@ class TwitterListSampler(object):
         list_weighting_data = self.list_map.setdefault(lists_key, {})
         screen_name_weight_map = list_weighting_data.setdefault("screen_name", {})
 
+        self.logger.debug("TwitterListSampler._getWeightedResults: Number of tweets received from"
+                " Twitter API: %d", len(tweet_list))
+
         self.logger.debug("TwitterListSampler._getWeightedResults: list screen_name_weight_map: %s",
                 screen_name_weight_map)
 
@@ -372,9 +375,14 @@ class TwitterListSampler(object):
                 self.logger.warning("TwitterApiClient.getTweetUrlsFromList: Bad tweet data from"
                         " Twitter API, missing id field: %r", tweet_data)
 
+        self.logger.debug("TwitterListSampler._getWeightedResults: Found eligible tweets from: %r",
+                results_map.keys())
+
         # Sort results by weight and return all of them
-        sorted_result_keys = sorted(results_map, key=lambda screen_name: results_map[screen_name][1])
+        sorted_result_keys = sorted(results_map,
+                key=lambda screen_name: results_map[screen_name][1], reverse=True)
         results = [results_map[key] for key in sorted_result_keys]
+
         return results
 
     async def _adjustWeights(self, list_owner, list_slug, tweets_shown):
