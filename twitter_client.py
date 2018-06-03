@@ -337,7 +337,7 @@ class TwitterListSampler(object):
         if list_data is None:
             return (None, error_string)
 
-        return list_data["member_count"]
+        return (list_data["member_count"], None)
 
     def _getWeightedResults(self, list_owner, list_slug, tweet_list):
 
@@ -391,6 +391,14 @@ class TwitterListSampler(object):
             The constant is the inverse of the list size, multiplied by the number of
             tweets shown.
         '''
+        # k is the constant we will add to all screen_name weights. Avoid div by zero if list is empty.
+        # Compute the adjustment constant using the list size.
+        list_size, error_reason = await self._getTwitterListSize(list_owner, list_slug)
+        if error_reason:
+            return error_reason
+        list_size = max(list_size, 1)
+        k = (1.0 / float(list_size)) * len(tweets_shown)
+
         lists_key = (list_owner, list_slug)
         list_weighting_data = self.list_map[lists_key]
 
@@ -401,22 +409,19 @@ class TwitterListSampler(object):
             screen_name = user["screen_name"]
             screen_name_weight_map[screen_name] = 0.0
 
-        # Compute the adjustment constant using the list size
-        list_size = max(await self._getTwitterListSize(list_owner, list_slug), 1.0)
-        k = (1.0 / list_size) * len(tweets_shown)
-
         # Add k to each value. If the result is greater than 1.0, don't include it in the new map.
-        weights_by_screen_name = list_weighting_data["screen_name"]
-        new_weights_by_screen_name = {}
-        for screen_name, weight in weights_by_screen_name.items():
+        new_screen_name_weight_map = {}
+        for screen_name, weight in screen_name_weight_map.items():
             new_weight = weight + k
             if new_weight < 1.0:
-                new_weights_by_screen_name[screen_name] = new_weight
+                new_screen_name_weight_map[screen_name] = new_weight
 
-        list_weighting_data["screen_name"] = new_weights_by_screen_name
+        list_weighting_data["screen_name"] = new_screen_name_weight_map
 
         self.logger.debug("TwitterListSampler._adjustWeights: new list weighting data: %s",
-                pprint.pformat(new_weights_by_screen_name))
+                pprint.pformat(new_screen_name_weight_map))
+
+        return None
 
     async def getTweets(self, list_owner, list_slug):
         ''' On success, returns list of two part tuples: [(tweet_url, weighted_score), ...]
@@ -434,7 +439,9 @@ class TwitterListSampler(object):
         tweet_score_tuples = weighted_results[:self.results_to_return]
 
         # Adjust weightings
-        await self._adjustWeights(list_owner, list_slug, tweet_score_tuples)
+        error_reason = await self._adjustWeights(list_owner, list_slug, tweet_score_tuples)
+        if error_reason:
+            return (None, error_reason)
 
         # Return two-part tuples like: (tweet_url, weighted_score)
         results = []
