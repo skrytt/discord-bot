@@ -7,13 +7,14 @@ import discord
 import handler_base
 import server_utils
 
-from twitter_client import TwitterApiClient
+from twitter_client import TwitterApiClient, TwitterListSampler
 
 USAGE_MSG = '\n'.join([
     '`!twitter list add <display_name>`',
     '`!twitter list remove <display_name>`',
     '`!twitter lasttweet`',
     '`!twitter lasttweet <display_name>`',
+    '`!twitter list sample`'
 ])
 class TwitterHandler(handler_base.HandlerBase):
     commands = ['twitter']
@@ -22,6 +23,7 @@ class TwitterHandler(handler_base.HandlerBase):
     def __init__(self, *args, **kwargs):
         super(TwitterHandler, self).__init__(*args, **kwargs)
         self._twitter_api_client = TwitterApiClient(self.config, self.logger)
+        self._twitter_list_sampler = TwitterListSampler(self.logger, self._twitter_api_client)
 
     def permissions(self, message):
         ''' Return True if the user has permission to perform this action,
@@ -114,16 +116,12 @@ class TwitterHandler(handler_base.HandlerBase):
 
             # !twitter list add <twitter_display_name>
             # !twitter list remove <twitter_display_name>
+            # !twitter list sample
             elif args[1] == 'list':
-                if len(args) != 4:
-                    await self.help(message)
-                    return
-
-                action = args[2] # "add" or "remove"
-                twitter_screen_name = args[3] # any twitter screen name, case doesn't matter
+                action = args[2] # "add", "remove" or "sample"
 
                 # Don't allow empty strings as parameters
-                if not action or not twitter_screen_name:
+                if not action:
                     await self.help(message)
                     return
 
@@ -141,6 +139,16 @@ class TwitterHandler(handler_base.HandlerBase):
                 list_slug = twitter_list_data[server_utils.TWITTER_LIST_SLUG_KEY]
 
                 if action == "add":
+                    if len(args) != 4:
+                        await self.help(message)
+                        return
+
+                    twitter_screen_name = args[3] # any twitter screen name, case doesn't matter
+                    # Don't allow empty strings as parameters
+                    if not twitter_screen_name:
+                        await self.help(message)
+                        return
+
                     success, error_reason = await self._twitter_api_client.addUserToList(list_owner, list_slug, twitter_screen_name)
 
                     if success:
@@ -155,6 +163,16 @@ class TwitterHandler(handler_base.HandlerBase):
                     await self.client.send_message(message.channel, response)
 
                 elif action == "remove":
+                    if len(args) != 4:
+                        await self.help(message)
+                        return
+
+                    twitter_screen_name = args[3] # any twitter screen name, case doesn't matter
+                    # Don't allow empty strings as parameters
+                    if not twitter_screen_name:
+                        await self.help(message)
+                        return
+
                     success, error_reason = await self._twitter_api_client.removeUserFromList(list_owner, list_slug, twitter_screen_name)
 
                     if success:
@@ -164,6 +182,29 @@ class TwitterHandler(handler_base.HandlerBase):
                         if error_reason:
                             error_reason = "Reason: `%s`" % (error_reason,)
                             response = " ".join([response, error_reason])
+
+                    await self.client.send_message(message.channel, response)
+
+                elif action == "sample":
+                    if len(args) != 3:
+                        await self.help(message)
+                        return
+
+                    results, error_reason = await self._twitter_list_sampler.getTweets(list_owner, list_slug)
+                    if results is None:
+                        response = "Sorry, the request didn't work!"
+                        if error_reason:
+                            error_reason = "Reason: `%s`" % (error_reason,)
+                            response = " ".join([response, error_reason])
+
+                    elif len(results) == 0:
+                        response = "Sorry, there were no tweets in the results!"
+
+                    else:
+                        response = '`%s`' % ('\n'.join(
+                            ["%s (%.2f)" % (tweet_url, weighted_score)
+                                    for tweet_url, weighted_score in results]
+                        ),)
 
                     await self.client.send_message(message.channel, response)
 

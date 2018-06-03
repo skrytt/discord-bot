@@ -6,6 +6,7 @@ import hmac
 import random
 import time
 import urllib
+import pprint
 
 import aiohttp
 
@@ -43,6 +44,20 @@ def _makeSignature(logger, method, base_url, request_params, oauth_header_params
     ).decode("utf-8")
 
     return signature
+
+def getUrlsFromTweets(tweet_list):
+    results = []
+    for tweet_data in tweet_list:
+        try:
+            tweet_creator_screen_name = tweet_data["user"]["screen_name"]
+            tweet_id = tweet_data["id"]
+            results.append("https://twitter.com/%s/status/%s" % (
+                    tweet_creator_screen_name, tweet_id))
+        except KeyError:
+            self.logger.debug("TwitterApiClient.getUrlsFromTweets: Bad tweet data from"
+                    "Twitter API, missing id field: %r", tweet_data)
+
+    return results
 
 class TwitterApiClient(object):
     ''' This class represents a client interface to make Twitter requests.
@@ -180,7 +195,7 @@ class TwitterApiClient(object):
         # Success
         return (True, None)
 
-    async def getTweetUrlsFromScreenName(self, twitter_screen_name, max_count=1, since_id=None):
+    async def getTweetsFromScreenName(self, twitter_screen_name, max_count=1, since_id=None):
         ''' Get a list of tweet URLs posted by the user with the specified twitter_screen_name.
             - max_count: the maximum number of results that can be returned in the list.
             - since_id: if provided, Twitter will only return tweets with IDs later than this.
@@ -207,19 +222,10 @@ class TwitterApiClient(object):
             return (None, error_reason)
 
         # For a 200 response we expect Twitter to provide a JSON array of results
-        results = []
-        for tweet_data in resp_data:
-            try:
-                tweet_id = tweet_data["id"]
-                results.append("https://twitter.com/%s/status/%s" % (twitter_screen_name, tweet_id))
-            except KeyError:
-                self.logger.debug("TwitterApiClient.getTweetUrlsFromScreenName: Bad tweet data from"
-                        "Twitter API, missing id field: %r", tweet_data)
-
         # It's possible there are no tweets the results list.
-        return (results, None)
+        return (resp_data, None)
 
-    async def getTweetUrlsFromList(self, owner_screen_name, list_slug, count=1, since_id=None):
+    async def getTweetsFromList(self, owner_screen_name, list_slug, max_count=1, since_id=None):
         ''' Get the last tweet posted by any member of the specified list.
             - max_count: the maximum number of results that can be returned in the list.
             - since_id: if provided, Twitter will only return tweets with IDs later than this.
@@ -234,7 +240,7 @@ class TwitterApiClient(object):
         request_params = {
             "owner_screen_name": owner_screen_name,
             "slug": list_slug,
-            "count": str(count),
+            "count": str(max_count),
             "include_rts": "false",
             "include_entities": "false"
         }
@@ -248,22 +254,44 @@ class TwitterApiClient(object):
             return (None, error_reason)
 
         # For a 200 response we expect Twitter to provide a JSON array of results
-        results = []
-        for tweet_data in resp_data:
-            try:
-                tweet_data = resp_data[0]
-                tweet_creator_screen_name = tweet_data["user"]["screen_name"]
-                tweet_id = tweet_data["id"]
-                results.append("https://twitter.com/%s/status/%s" % (
-                        tweet_creator_screen_name, tweet_id))
-            except KeyError:
-                self.logger.warning("TwitterApiClient.getTweetUrlsFromList: Bad tweet data from"
-                        " Twitter API, missing id field: %r", tweet_data)
-
         # It's possible there are no tweets the results list.
-        return (results, None)
+        return (resp_data, None)
 
-        return (None, "Could not parse any tweets from Twitter API response!")
+    async def getTweetUrlsFromScreenName(self, twitter_screen_name, max_count=1, since_id=None):
+        tweet_list, error_reason = await self.getTweetsFromScreenName(
+                twitter_screen_name, max_count=max_count, since_id=since_id)
+        if error_reason:
+            return (None, error_reason)
+
+        tweet_urls = getUrlsFromTweets(tweet_list)
+        return (tweet_urls, None)
+
+    async def getTweetUrlsFromList(self, owner_screen_name, list_slug, max_count=1, since_id=None):
+        tweet_list, error_reason = await self.getTweetsFromList(
+                owner_screen_name, list_slug, max_count=max_count, since_id=since_id)
+        if error_reason:
+            return (None, error_reason)
+
+        tweet_urls = getUrlsFromTweets(tweet_list)
+        return (tweet_urls, None)
+
+    async def getListData(self, list_owner, list_slug):
+        ''' Return data about a Twitter list.
+        '''
+        method = "GET"
+        url = "https://api.twitter.com/1.1/lists/show.json"
+        request_params = {
+            "owner_screen_name": list_owner,
+            "slug": list_slug
+        }
+
+        resp_status, resp_data = await self._apiRequest(method, url, request_params)
+        error_reason = self._getErrorReason(resp_status, resp_data)
+        if error_reason:
+            return (None, error_reason)
+
+        return (resp_data, None)
+
 
     async def addUserToList(self, list_owner, list_slug, twitter_screen_name):
         ''' Add a user to a Twitter list.
@@ -287,3 +315,125 @@ class TwitterApiClient(object):
                 list_owner, list_slug, twitter_screen_name, "destroy")
         return (result, error_reason)
 
+class TwitterListSampler(object):
+    ''' Class that selects recent Tweets to share from lists based on a set of weighting criteria.
+
+        This is achieved by applying a weighting algorithm to the tweets and returning the
+        highest scoring results.
+    '''
+    max_tweets_to_consider = 50
+    results_to_return = 3
+    def __init__(self, logger, twitter_api_client):
+        # Weighting factor based on screen name. This exists to reduce likelihood that the same
+        # twitter handle will have its tweets shared many times in quick succession.
+        # Values should be greater than 0.0.
+        self.logger = logger
+        self.twitter_api_client = twitter_api_client
+
+        self.list_map = {}
+
+    async def _getTwitterListSize(self, list_owner, list_slug):
+        list_data, error_string = await self.twitter_api_client.getListData(list_owner, list_slug)
+        if list_data is None:
+            return (None, error_string)
+
+        return list_data["member_count"]
+
+    def _getWeightedResults(self, list_owner, list_slug, tweet_list):
+
+        lists_key = (list_owner, list_slug)
+        list_weighting_data = self.list_map.setdefault(lists_key, {})
+        screen_name_weight_map = list_weighting_data.setdefault("screen_name", {})
+
+        self.logger.debug("TwitterListSampler._getWeightedResults: list screen_name_weight_map: %s",
+                screen_name_weight_map)
+
+        # results_map maps screen names to two-item tuples of the form: (tweet_data, weighted_score).
+        # a screen_name's highest scoring tweet will be kept in the map.
+        results_map = {}
+
+        for tweet_data in tweet_list:
+            try:
+                tweet_creator_screen_name = tweet_data["user"]["screen_name"]
+
+                # Gather weighting parameters (default to 1.0 if it's not there)
+                screen_name_weighting_factor = screen_name_weight_map.get(
+                        tweet_creator_screen_name, 1.0)
+
+                # Compute final weighted score
+                weighted_score = screen_name_weighting_factor
+
+                # Add the tweet to the results if it's the highest scoring tweet for this screen name
+                if (tweet_creator_screen_name not in results_map or
+                        weighted_score > results_map[tweet_creator_screen_name][1]):
+                    results_map[tweet_creator_screen_name] = (tweet_data, weighted_score)
+
+            except KeyError:
+                self.logger.warning("TwitterApiClient.getTweetUrlsFromList: Bad tweet data from"
+                        " Twitter API, missing id field: %r", tweet_data)
+
+        # Sort results by weight and return all of them
+        sorted_result_keys = sorted(results_map, key=lambda screen_name: results_map[screen_name][1])
+        results = [results_map[key] for key in sorted_result_keys]
+        return results
+
+    async def _adjustWeights(self, list_owner, list_slug, tweets_shown):
+        ''' This method adds a constant to all twitter handle weights, to increase the
+            chance a user's tweets will be shown again over time.
+            The constant is the inverse of the list size, multiplied by the number of
+            tweets shown.
+        '''
+        lists_key = (list_owner, list_slug)
+        list_weighting_data = self.list_map[lists_key]
+
+        # Set the screen name weights to zero for all users associated with any shown tweet
+        screen_name_weight_map = list_weighting_data.setdefault("screen_name", {})
+        for tweet_data, _ in tweets_shown:
+            user = tweet_data["user"]
+            screen_name = user["screen_name"]
+            screen_name_weight_map[screen_name] = 0.0
+
+        # Compute the adjustment constant using the list size
+        list_size = max(await self._getTwitterListSize(list_owner, list_slug), 1.0)
+        k = (1.0 / list_size) * len(tweets_shown)
+
+        # Add k to each value. If the result is greater than 1.0, don't include it in the new map.
+        weights_by_screen_name = list_weighting_data["screen_name"]
+        new_weights_by_screen_name = {}
+        for screen_name, weight in weights_by_screen_name.items():
+            new_weight = weight + k
+            if new_weight < 1.0:
+                new_weights_by_screen_name[screen_name] = new_weight
+
+        list_weighting_data["screen_name"] = new_weights_by_screen_name
+
+        self.logger.debug("TwitterListSampler._adjustWeights: new list weighting data: %s",
+                pprint.pformat(new_weights_by_screen_name))
+
+    async def getTweets(self, list_owner, list_slug):
+        ''' On success, returns list of two part tuples: [(tweet_url, weighted_score), ...]
+            On failure, returns None instead.
+        '''
+        tweet_list, error_reason = await self.twitter_api_client.getTweetsFromList(
+                list_owner, list_slug, max_count=self.max_tweets_to_consider)
+        if error_reason:
+            return (None, error_reason)
+
+        # Score tweets using known weightings
+        weighted_results = self._getWeightedResults(list_owner, list_slug, tweet_list)
+
+        # Sample the highest weighted results
+        tweet_score_tuples = weighted_results[:self.results_to_return]
+
+        # Adjust weightings
+        await self._adjustWeights(list_owner, list_slug, tweet_score_tuples)
+
+        # Return two-part tuples like: (tweet_url, weighted_score)
+        results = []
+        for tweet_data, weighted_score in tweet_score_tuples:
+            tweet_creator_screen_name = tweet_data["user"]["screen_name"]
+            tweet_id = tweet_data["id"]
+            tweet_url = "https://twitter.com/%s/status/%s" % (tweet_creator_screen_name, tweet_id)
+            results.append((tweet_url, weighted_score))
+
+        return (results, None)
