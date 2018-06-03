@@ -84,7 +84,8 @@ class TwitterApiClient(object):
         if not all([key in twitter_config for key in (
                 "consumer_key", "consumer_secret", "access_token", "access_token_secret")]):
             error_reason = "The bot isn't configured to talk to Twitter, ask the owner to fix this!"
-            self.logger.warning(error_reason)
+            self.logger.warning("TwitterApiClient._getAuthorizationHeaderValue: can't get required"
+                    " Twitter config data from loaded config")
             return (None, error_reason)
 
         # Details for the Authorization header and the signature
@@ -372,7 +373,7 @@ class TwitterListSampler(object):
                     results_map[tweet_creator_screen_name] = (tweet_data, weighted_score)
 
             except KeyError:
-                self.logger.warning("TwitterApiClient.getTweetUrlsFromList: Bad tweet data from"
+                self.logger.warning("TwitterListSampler._getWeightedResults: Bad tweet data from"
                         " Twitter API, missing id field: %r", tweet_data)
 
         self.logger.debug("TwitterListSampler._getWeightedResults: Found eligible tweets from: %r",
