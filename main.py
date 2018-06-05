@@ -10,8 +10,9 @@ import dispatcher_utils
 import misc_utils
 import database_utils
 import server_utils
-
 import stream_notification_utils
+import twitter_client
+import twitter_scheduler
 
 if __name__ != '__main__':
     print('Importing of this module is unsupported')
@@ -30,17 +31,19 @@ if not config.load():
     logger.info('Cannot proceed without configuration - exiting.')
     sys.exit(1)
 
+twitter_client.initialize(config, logger)
+
 # Now set the configured log level
 misc_utils.setLogLevel(logger, config)
 
 database = database_utils.Database(config)
-
 server_data_map = server_utils.ServerDataMap(logger, database)
-
-dispatcher = dispatcher_utils.Dispatcher(logger, config, client, server_data_map, database)
-
+twitter_scheduler.initialize(
+        config, logger, server_data_map, client)
+dispatcher = dispatcher_utils.Dispatcher(
+        logger, config, client, server_data_map, database)
 stream_notifications = stream_notification_utils.StreamNotifications(
-    logger, config, client, server_data_map)
+        logger, config, client, server_data_map)
 
 @client.event
 async def on_ready():
@@ -49,6 +52,11 @@ async def on_ready():
     '''
     logger.info('Logged in as user with name %r and ID %r', client.user.name, client.user.id)
     config.load()
+
+    # Schedule Twitter stuffs
+    for server in client.servers:
+        logger.debug('Joined server %r', server.name)
+        twitter_scheduler.scheduler.start(server)
 
 @client.event
 async def on_message(message):

@@ -9,6 +9,15 @@ import urllib
 import pprint
 
 import aiohttp
+import asyncio
+
+api_client = None
+list_sampler = None
+
+def initialize(config, logger):
+    global api_client, list_sampler
+    api_client = TwitterApiClient(config, logger)
+    list_sampler = TwitterListSampler(logger, api_client)
 
 def _makeNonce():
     ''' Return a random string to use as a request identifier. '''
@@ -322,8 +331,8 @@ class TwitterListSampler(object):
         This is achieved by applying a weighting algorithm to the tweets and returning the
         highest scoring results.
     '''
-    max_tweets_to_consider = 50
-    results_to_return = 3
+    max_tweets_to_consider = 33
+    results_to_return = 1
     def __init__(self, logger, twitter_api_client):
         # Weighting factor based on screen name. This exists to reduce likelihood that the same
         # twitter handle will have its tweets shared many times in quick succession.

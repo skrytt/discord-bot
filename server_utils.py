@@ -18,6 +18,7 @@ MEMBER_ASSIGNABLE_ROLE_NAMES_SET_KEY = 'member_assignable_role_names'
 
 TWITTER_LIST_OWNER_DISPLAY_NAME_KEY = 'twitter_list_owner_display_name'
 TWITTER_LIST_SLUG_KEY = 'twitter_list_slug'
+TWITTER_TARGET_CHANNEL_KEY = 'twitter_target_channel'
 
 SERVER_DEFAULT_COMMAND_PREFIX = '!'
 
@@ -152,16 +153,19 @@ class ServerData(object):
                 TWITTER_LIST_OWNER_DISPLAY_NAME_KEY: self._hash.get(
                     TWITTER_LIST_OWNER_DISPLAY_NAME_KEY.encode('utf-8')).decode('utf-8'),
                 TWITTER_LIST_SLUG_KEY: self._hash.get(
-                    TWITTER_LIST_SLUG_KEY.encode('utf-8')).decode('utf-8')
+                    TWITTER_LIST_SLUG_KEY.encode('utf-8')).decode('utf-8'),
+                TWITTER_TARGET_CHANNEL_KEY: self._hash.get(
+                    TWITTER_TARGET_CHANNEL_KEY.encode('utf-8')).decode('utf-8')
             }
             return data
         except Exception:
             return None
 
-    def setTwitterListData(self, owner_display_name, slug):
+    def setTwitterListData(self, owner_display_name, slug, target_channel):
         data = {
             TWITTER_LIST_OWNER_DISPLAY_NAME_KEY: owner_display_name,
-            TWITTER_LIST_SLUG_KEY: slug
+            TWITTER_LIST_SLUG_KEY: slug,
+            TWITTER_TARGET_CHANNEL_KEY: target_channel
         }
         self.database.setServerSpecificHashData(self.server.id, data)
         self.update()

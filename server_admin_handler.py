@@ -78,9 +78,10 @@ class ServerAdminHandler(handler_base.HandlerBase):
             elif command == 'settwitterlistdata':
                 owner_screen_name = args[1]
                 list_slug = args[2]
-                if not owner_screen_name or not list_slug:
+                discord_channel_name = args[3]
+                if not owner_screen_name or not list_slug or not discord_channel_name:
                     return
-                server_data.setTwitterListData(owner_screen_name, list_slug)
+                server_data.setTwitterListData(owner_screen_name, list_slug, discord_channel_name)
                 await self.client.send_message(
                     message.channel,
                     'Twitter list data updated!'
