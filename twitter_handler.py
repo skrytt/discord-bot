@@ -22,8 +22,8 @@ class TwitterHandler(handler_base.HandlerBase):
 
     def __init__(self, *args, **kwargs):
         super(TwitterHandler, self).__init__(*args, **kwargs)
-        self._twitter_api_client = TwitterApiClient(self.config, self.logger)
-        self._twitter_list_sampler = TwitterListSampler(self.logger, self._twitter_api_client)
+        self._twitter_api_client = TwitterApiClient(self.config)
+        self._twitter_list_sampler = TwitterListSampler(self._twitter_api_client)
 
     def permissions(self, message):
         ''' Return True if the user has permission to perform this action,

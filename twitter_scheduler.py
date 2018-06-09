@@ -1,10 +1,12 @@
 """ Code to send Tweets to Discord chatrooms.
 """
 
+import logging
 import random
 
 import asyncio
 
+import consts
 import server_utils
 
 MINIMUM_TWEET_DELAY_INTERVAL = 60 * 60 # 1 hour
@@ -16,9 +18,9 @@ def get_delay_time():
 
 class TwitterScheduler(object):
     """ Class to handle scheduling the posting of Tweets to Discord servers. """
-    def __init__(self, config, logger, server_data_map, client, list_sampler):
+    def __init__(self, config, server_data_map, client, list_sampler):
+        self.logger = logging.getLogger(consts.LOGGER_NAME)
         self.config = config
-        self.logger = logger
         self.server_data_map = server_data_map
         self.client = client
         self.list_sampler = list_sampler

@@ -2,7 +2,10 @@
 """
 
 import json
+import logging
 import os
+
+import consts
 
 CONFIG_JSON_FILE_ENVVAR = "DISCORD_BOT_CONFIG_JSON_FILE"
 BOT_CLIENT_ID_KEY = "bot_client_id"
@@ -23,8 +26,8 @@ class Config(object):
     _database = None
     _twitter_config = None
 
-    def __init__(self, logger):
-        self.logger = logger
+    def __init__(self):
+        self.logger = logging.getLogger(consts.LOGGER_NAME)
         self._raw_config_data = None
         self.load()
 

@@ -8,6 +8,7 @@ import sys
 import discord
 
 import config_utils
+import consts
 import dispatcher_utils
 import misc_utils
 import database_utils
@@ -25,7 +26,7 @@ if __name__ != '__main__':
 
 # LOGGER is for our logs; DISCORD_LOGGER is for those from discord.py.
 # Set a default log level for them until we've loaded the config.
-LOGGER = logging.getLogger(__name__)
+LOGGER = logging.getLogger(consts.LOGGER_NAME)
 DISCORD_LOGGER = logging.getLogger('discord')
 
 for logger in (LOGGER, DISCORD_LOGGER):
@@ -36,7 +37,7 @@ for logger in (LOGGER, DISCORD_LOGGER):
 CLIENT = discord.Client()
 
 try:
-    CONFIG = config_utils.Config(LOGGER)
+    CONFIG = config_utils.Config()
 except RuntimeError:
     LOGGER.error('Cannot proceed without configuration, exiting.')
     sys.exit(1)
@@ -49,22 +50,22 @@ LOGGER.setLevel(CONFIG.getLogLevel())
 DATABASE = database_utils.Database(CONFIG)
 
 # Mapping of data specific to particular Discord servers
-SERVER_DATA_MAP = server_utils.ServerDataMap(LOGGER, DATABASE)
+SERVER_DATA_MAP = server_utils.ServerDataMap(DATABASE)
 
 # Initialize our Twitter API interface
-twitter_client.initialize(CONFIG, LOGGER)
+twitter_client.initialize(CONFIG)
 
 # Twitter scheduler: periodically tries to send Tweets to channels
 TWITTER_SCHEDULER = twitter_scheduler.TwitterScheduler(
-    CONFIG, LOGGER, SERVER_DATA_MAP, CLIENT, twitter_client.list_sampler)
+    CONFIG, SERVER_DATA_MAP, CLIENT, twitter_client.LIST_SAMPLER)
 
 # Stream notifications: reacts to Twitch streams starting and notifies Discord users
 STREAM_NOTIFICATIONS = stream_notification_utils.StreamNotifications(
-    LOGGER, CONFIG, CLIENT, SERVER_DATA_MAP)
+    CONFIG, CLIENT, SERVER_DATA_MAP)
 
 # Dispatcher: knows how to route commands to the objects which will handle them
 DISPATCHER = dispatcher_utils.Dispatcher(
-    LOGGER, CONFIG, CLIENT, SERVER_DATA_MAP, DATABASE)
+    CONFIG, CLIENT, SERVER_DATA_MAP, DATABASE)
 
 
 @CLIENT.event

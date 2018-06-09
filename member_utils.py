@@ -1,6 +1,8 @@
+""" Utils to get data relating to specific members. """
+import logging
 import time
 
-import discord
+import consts
 
 LAST_STREAM_NOTIFY_TIME_HASH_KEY = 'last_stream_notify_time'
 
@@ -10,22 +12,22 @@ def getMemberSettableAccountTypes():
     return ['steamid', 'battletag']
 
 class MemberDataMap(object):
-    def __init__(self, logger, database):
-        self.logger = logger
+    def __init__(self, database):
+        self.logger = logging.getLogger(consts.LOGGER_NAME)
         self.database = database
         self._map = {}
 
     def get(self, member):
         member_data = self._map.setdefault(
             member.id,
-            MemberData(self.logger, self.database, member))
+            MemberData(self.database, member))
         return member_data
 
 class MemberData(object):
     ''' Collates data about a user from their discord object and from our database.
     '''
-    def __init__(self, logger, database, member):
-        self.logger = logger
+    def __init__(self, database, member):
+        self.logger = logging.getLogger(consts.LOGGER_NAME)
         self.database = database
         self.member = member
         self._hash = {}

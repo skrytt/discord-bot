@@ -1,5 +1,8 @@
 ''' Module providing a base class for command handlers.
 '''
+import logging
+
+import consts
 
 class HandlerBase(object):
     ''' Base class for command handlers.
@@ -8,9 +11,9 @@ class HandlerBase(object):
                    # handled by this object
     hidden = False # Controls whether or not to show these commands in !help
 
-    def __init__(self, dispatcher, logger, config, client, server_data_map):
+    def __init__(self, dispatcher, config, client, server_data_map):
         self.dispatcher = dispatcher
-        self.logger = logger
+        self.logger = logging.getLogger(consts.LOGGER_NAME)
         self.config = config
         self.client = client
         self.server_data_map = server_data_map

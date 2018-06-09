@@ -3,21 +3,23 @@
 
 import base64
 import hmac
+import logging
 import random
 import time
 import urllib
 import pprint
 
 import aiohttp
-import asyncio
 
-api_client = None
-list_sampler = None
+import consts
 
-def initialize(config, logger):
-    global api_client, list_sampler
-    api_client = TwitterApiClient(config, logger)
-    list_sampler = TwitterListSampler(logger, api_client)
+API_CLIENT = None
+LIST_SAMPLER = None
+
+def initialize(config):
+    global API_CLIENT, LIST_SAMPLER
+    API_CLIENT = TwitterApiClient(config)
+    LIST_SAMPLER = TwitterListSampler(API_CLIENT)
 
 def _makeNonce():
     ''' Return a random string to use as a request identifier. '''
@@ -63,7 +65,7 @@ def getUrlsFromTweets(tweet_list):
             results.append("https://twitter.com/%s/status/%s" % (
                     tweet_creator_screen_name, tweet_id))
         except KeyError:
-            self.logger.debug("TwitterApiClient.getUrlsFromTweets: Bad tweet data from"
+            self.logger.debug("getUrlsFromTweets: Bad tweet data from"
                     "Twitter API, missing id field: %r", tweet_data)
 
     return results
@@ -72,9 +74,9 @@ class TwitterApiClient(object):
     ''' This class represents a client interface to make Twitter requests.
         It is able to authenticate with Twitter's application-only auth flow.
     '''
-    def __init__(self, config, logger):
+    def __init__(self, config):
         self.config = config
-        self.logger = logger
+        self.logger = logging.getLogger(consts.LOGGER_NAME)
         self.session = None
 
     async def _getSession(self):
@@ -333,11 +335,11 @@ class TwitterListSampler(object):
     '''
     max_tweets_to_consider = 33
     results_to_return = 1
-    def __init__(self, logger, twitter_api_client):
+    def __init__(self, twitter_api_client):
         # Weighting factor based on screen name. This exists to reduce likelihood that the same
         # twitter handle will have its tweets shared many times in quick succession.
         # Values should be greater than 0.0.
-        self.logger = logger
+        self.logger = logging.getLogger(consts.LOGGER_NAME)
         self.twitter_api_client = twitter_api_client
 
         self.list_map = {}

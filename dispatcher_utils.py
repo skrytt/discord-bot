@@ -1,8 +1,10 @@
 ''' Class for dispatching incoming messages to appropriate handlers.
 '''
+import logging
+
+import consts
+
 # Command handlers
-import account_handler
-import roles_handler
 import server_admin_handler
 import twitter_handler
 
@@ -12,8 +14,8 @@ class Dispatcher(object):
     ''' Accepts messages and possibly dispatches them to an appropriate
         handler instance.
     '''
-    def __init__(self, logger, config, client, server_data_map, database):
-        self.logger = logger
+    def __init__(self, config, client, server_data_map, database):
+        self.logger = logging.getLogger(consts.LOGGER_NAME)
         self.config = config
         self.client = client
         self.database = database
@@ -24,10 +26,10 @@ class Dispatcher(object):
         self._hidden_command_handler_map = {}
 
         self.registerHandler(
-            server_admin_handler.ServerAdminHandler(self, logger, config, client, server_data_map))
+            server_admin_handler.ServerAdminHandler(self, config, client, server_data_map))
 
         self.registerHandler(
-            twitter_handler.TwitterHandler(self, logger, config, client, server_data_map))
+            twitter_handler.TwitterHandler(self, config, client, server_data_map))
 
     def registerHandler(self, handler):
         ''' Map an iterable of commands to a handler.
