@@ -14,7 +14,7 @@ import database_utils
 import server_utils
 import stream_notification_utils
 import twitter_client
-#import twitter_scheduler
+import twitter_scheduler
 
 DEFAULT_LOG_LEVEL = 'INFO'
 LOG_HANDLER = logging.StreamHandler()
@@ -54,21 +54,17 @@ SERVER_DATA_MAP = server_utils.ServerDataMap(LOGGER, DATABASE)
 # Initialize our Twitter API interface
 twitter_client.initialize(CONFIG, LOGGER)
 
-# Dispatcher: knows how to route commands to the objects which will handle them
-DISPATCHER = dispatcher_utils.Dispatcher(
-    LOGGER, CONFIG, CLIENT, SERVER_DATA_MAP, DATABASE)
-
-#############################
-# Non-command functionality #
-#############################
-
 # Twitter scheduler: periodically tries to send Tweets to channels
-#twitter_scheduler.initialize(
-#    CONFIG, LOGGER, SERVER_DATA_MAP, CLIENT)
+TWITTER_SCHEDULER = twitter_scheduler.TwitterScheduler(
+    CONFIG, LOGGER, SERVER_DATA_MAP, CLIENT, twitter_client.list_sampler)
 
 # Stream notifications: reacts to Twitch streams starting and notifies Discord users
 STREAM_NOTIFICATIONS = stream_notification_utils.StreamNotifications(
     LOGGER, CONFIG, CLIENT, SERVER_DATA_MAP)
+
+# Dispatcher: knows how to route commands to the objects which will handle them
+DISPATCHER = dispatcher_utils.Dispatcher(
+    LOGGER, CONFIG, CLIENT, SERVER_DATA_MAP, DATABASE)
 
 
 @CLIENT.event
@@ -82,7 +78,7 @@ async def on_ready():
     # Schedule Twitter stuffs
     for server in CLIENT.servers:
         LOGGER.debug('Joined server %r', server.name)
-        #twitter_scheduler.scheduler.start(server)
+        TWITTER_SCHEDULER.start(server)
 
 
 @CLIENT.event
