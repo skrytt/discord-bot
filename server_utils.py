@@ -9,6 +9,7 @@ import time
 import discord
 
 import consts
+import database_utils
 import member_utils
 
 COMMAND_PREFIX_HASH_KEY = 'command_prefix'
@@ -23,7 +24,15 @@ TWITTER_TARGET_CHANNEL_KEY = 'twitter_target_channel'
 
 SERVER_DEFAULT_COMMAND_PREFIX = '!'
 
-class ServerDataMap(object):
+def get(server):
+    """ Returns a ServerData instance for this server. """
+    if not _ServerDataMap.instance:
+        _ServerDataMap.instance = _ServerDataMap(database_utils.get())
+    return _ServerDataMap.instance.get(server)
+
+class _ServerDataMap(object):
+    instance = None
+
     def __init__(self, database):
         self.logger = logging.getLogger(consts.LOGGER_NAME)
         self.database = database
@@ -32,10 +41,10 @@ class ServerDataMap(object):
     def get(self, server):
         server_data = self._map.setdefault(
             server.id,
-            ServerData(self.database, server))
+            _ServerData(self.database, server))
         return server_data
 
-class ServerData(object):
+class _ServerData(object):
     ''' Collates data about a particular Discord server from its discord object
         and from our database.
     '''
@@ -45,7 +54,6 @@ class ServerData(object):
         self.server = server
         self._hash = {}
         self._member_assignable_roles = []
-        self.member_data_map = member_utils.MemberDataMap(database)
         self.update()
 
     def update(self):

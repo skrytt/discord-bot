@@ -31,7 +31,7 @@ class TwitterHandler(handler_base.HandlerBase):
         '''
         author = message.author
         server = message.server
-        server_data = self.server_data_map.get(server)
+        server_data = server_utils.get(server)
 
         # 1. This command is usable in servers only.
         if not server:
@@ -51,7 +51,8 @@ class TwitterHandler(handler_base.HandlerBase):
         # Gather parameters
         try:
             assert message.content.startswith('!twitter'), \
-                "Entered TwitterHandler apply but base command was not !twitter . Args: %r" % (args,)
+                    "Entered TwitterHandler apply but base command was not !twitter: %r" % (
+                        message.content)
 
             args = message.content.split()
 
@@ -80,7 +81,7 @@ class TwitterHandler(handler_base.HandlerBase):
 
                 else:
                     server = message.server
-                    server_data = self.server_data_map.get(server)
+                    server_data = server_utils.get(server)
                     twitter_list_data = server_data.getTwitterListData()
 
                     if not twitter_list_data:
@@ -126,7 +127,7 @@ class TwitterHandler(handler_base.HandlerBase):
                     return
 
                 server = message.server
-                server_data = self.server_data_map.get(server)
+                server_data = server_utils.get(server)
                 twitter_list_data = server_data.getTwitterListData()
                 if not twitter_list_data:
                     self.logger.error("Could not get Twitter list data from database!")
@@ -217,8 +218,7 @@ class TwitterHandler(handler_base.HandlerBase):
                 await self.help(message)
 
         except discord.Forbidden:
-            self.logger.warning('No permission for client role change action with'
-                                ' author %r, role %r' % (author_member, role))
+            self.logger.warning('No permission for tweet action with author %r' % (message.author,))
 
     async def help(self, message):
         # Permission check

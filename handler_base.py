@@ -4,6 +4,7 @@ import logging
 
 import config_utils
 import consts
+import server_utils
 
 class HandlerBase(object):
     ''' Base class for command handlers.
@@ -12,12 +13,11 @@ class HandlerBase(object):
                    # handled by this object
     hidden = False # Controls whether or not to show these commands in !help
 
-    def __init__(self, dispatcher, client, server_data_map):
+    def __init__(self, dispatcher, client):
         self.dispatcher = dispatcher
         self.logger = logging.getLogger(consts.LOGGER_NAME)
         self.config = config_utils.get()
         self.client = client
-        self.server_data_map = server_data_map
 
     async def permissions(self, message):
         ''' Return True if the user has permission to perform this action,
@@ -25,7 +25,7 @@ class HandlerBase(object):
         '''
         author = message.author
         server = message.server
-        server_data = self.server_data_map.get(server)
+        server_data = server_utils.get(server)
 
         # 1. This command is usable in servers only.
         if not server:

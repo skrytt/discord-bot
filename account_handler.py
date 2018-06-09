@@ -15,6 +15,7 @@ import discord
 
 import handler_base
 import member_utils
+import server_utils
 
 ARBITRARY_ID_LENGTH_LIMIT = 128
 
@@ -136,7 +137,7 @@ class AccountHandler(handler_base.HandlerBase):
         '''
         author = message.author
         server = message.server
-        server_data = self.server_data_map.get(server)
+        server_data = server_utils.get(server)
 
         # 1. This command is usable in servers only.
         if not server:
@@ -151,7 +152,7 @@ class AccountHandler(handler_base.HandlerBase):
     def getServerAccountsByTypeEmbed(self, server, account_type):
         if account_type not in member_utils.getMemberSettableAccountTypes():
             return getMemberSettableAccountTypesMessage()
-        server_data = self.server_data_map.get(server)
+        server_data = server_utils.get(server)
         member_ids = server_data.getAccountsByType(account_type)
 
         accounts_text_list = []
@@ -217,7 +218,7 @@ class AccountHandler(handler_base.HandlerBase):
             return
 
         # Gather parameters
-        server_data = self.server_data_map.get(message.server)
+        server_data = server_utils.get(message.server)
         author = message.author
         member_data = server_data.member_data_map.get(author)
         args = message.content.split()
@@ -282,7 +283,7 @@ class AccountHandler(handler_base.HandlerBase):
             return
 
         # Gather parameters
-        server_data = self.server_data_map.get(message.server)
+        server_data = server_utils.get(message.server)
         args = message.content.split()
 
         account_type = None
@@ -294,7 +295,7 @@ class AccountHandler(handler_base.HandlerBase):
             pass
 
         # Send usage message
-        server_data = self.server_data_map.get(message.server)
+        server_data = server_utils.get(message.server)
         await self.client.send_message(
             message.channel,
             'Usage instructions (enable website preview info in your settings to view):',

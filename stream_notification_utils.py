@@ -3,13 +3,13 @@ import logging
 
 import config_utils
 import consts
+import server_utils
 
 class StreamNotifications(object):
-    def __init__(self, client, server_data_map):
+    def __init__(self, client):
         self.logger = logging.getLogger(consts.LOGGER_NAME)
         self.config = config_utils.get()
         self.client = client
-        self.server_data_map = server_data_map
 
     def isMemberStartingToStream(self, member_before, member_after):
         ''' Return True if the member just began streaming, or False otherwise.
@@ -45,7 +45,7 @@ class StreamNotifications(object):
         self.logger.debug('stream_notification_utils.StreamNotifications.onMemberUpdate: '
                           'Permissions check')
         server = member_after.server
-        server_data = self.server_data_map.get(server)
+        server_data = server_utils.get(server)
         if not server_data.userHasMemberPermissions(member_after):
             return
 
@@ -64,7 +64,7 @@ class StreamNotifications(object):
         ''' Advertise a stream in the Discord server of the streaming member.
         '''
         self.logger.debug('In stream_notification_utils.StreamNotifications.advertiseStream')
-        server_data = self.server_data_map.get(member.server)
+        server_data = server_utils.get(member.server)
         notification_channel_name = server_data.getNotificationChannelName()
         notification_channel = server_data.getTextChannelFromName(notification_channel_name)
         if not notification_channel:
@@ -78,7 +78,7 @@ class StreamNotifications(object):
         # waiting for the advert message to be successfully sent
         self.logger.debug('stream_notification_utils.StreamNotifications.advertiseStream: '
                           'Updating last stream notify time')
-        server_data = self.server_data_map.get(member.server)
+        server_data = server_utils.get(member.server)
         member_data = server_data.member_data_map.get(member)
         member_data.updateLastStreamNotifyTime()
 

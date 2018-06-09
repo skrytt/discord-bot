@@ -12,12 +12,20 @@ MULTI_MEMBER_SET_KEY = 'multimember'
 HASH_KEY = 'hash'
 SET_KEY = 'set'
 
+def get():
+    """ Return the Database object. """
+    if not _Database.instance:
+        _Database.instance = _Database()
+    return _Database.instance
+
 def _makeKey(*parts):
     # Ensure keys are byte strings based on utf-8 encoding
     return ':'.join(parts).encode('utf-8')
 
-class Database(object):
+class _Database(object):
     ''' Represents a database connection to Redis. '''
+    instance = None
+
     def __init__(self):
         config = config_utils.get()
         self._db = redis.Redis(**config.getDatabaseConfigMap())

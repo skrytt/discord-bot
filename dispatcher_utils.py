@@ -4,6 +4,8 @@ import logging
 
 import config_utils
 import consts
+import database_utils
+import server_utils
 
 # Command handlers
 import server_admin_handler
@@ -15,22 +17,20 @@ class Dispatcher(object):
     ''' Accepts messages and possibly dispatches them to an appropriate
         handler instance.
     '''
-    def __init__(self, client, server_data_map, database):
+    def __init__(self, client):
         self.logger = logging.getLogger(consts.LOGGER_NAME)
         self.config = config_utils.get()
         self.client = client
-        self.database = database
-
-        self.server_data_map = server_data_map
+        self.database = database_utils.get()
 
         self._command_handler_map = {}
         self._hidden_command_handler_map = {}
 
         self.registerHandler(
-            server_admin_handler.ServerAdminHandler(self, client, server_data_map))
+            server_admin_handler.ServerAdminHandler(self, client))
 
         self.registerHandler(
-            twitter_handler.TwitterHandler(self, client, server_data_map))
+            twitter_handler.TwitterHandler(self, client))
 
     def registerHandler(self, handler):
         ''' Map an iterable of commands to a handler.
@@ -52,7 +52,7 @@ class Dispatcher(object):
         try:
             server = message.server
             if server:
-                server_data = self.server_data_map.get(server)
+                server_data = server_utils.get(server)
                 prefix = server_data.getCommandPrefix()
         except Exception as exc:
             # Notify the server owner when unhandled exceptions propagate to here.

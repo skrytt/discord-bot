@@ -11,8 +11,6 @@ import config_utils
 import consts
 import dispatcher_utils
 import misc_utils
-import database_utils
-import server_utils
 import stream_notification_utils
 import twitter_client
 import twitter_scheduler
@@ -46,26 +44,17 @@ except RuntimeError:
 # Leave Discord.py logging at the default level, we're less interested in it
 LOGGER.setLevel(CONFIG.getLogLevel())
 
-# Interface to Redis backend for persistent storage
-DATABASE = database_utils.Database()
-
-# Mapping of data specific to particular Discord servers
-SERVER_DATA_MAP = server_utils.ServerDataMap(DATABASE)
-
 # Initialize our Twitter API interface
 twitter_client.initialize()
 
+# Dispatcher: knows how to route commands to the objects which will handle them
+DISPATCHER = dispatcher_utils.Dispatcher(CLIENT)
+
 # Twitter scheduler: periodically tries to send Tweets to channels
-TWITTER_SCHEDULER = twitter_scheduler.TwitterScheduler(
-        SERVER_DATA_MAP, CLIENT, twitter_client.LIST_SAMPLER)
+TWITTER_SCHEDULER = twitter_scheduler.TwitterScheduler(CLIENT)
 
 # Stream notifications: reacts to Twitch streams starting and notifies Discord users
-STREAM_NOTIFICATIONS = stream_notification_utils.StreamNotifications(
-    CLIENT, SERVER_DATA_MAP)
-
-# Dispatcher: knows how to route commands to the objects which will handle them
-DISPATCHER = dispatcher_utils.Dispatcher(
-    CLIENT, SERVER_DATA_MAP, DATABASE)
+STREAM_NOTIFICATIONS = stream_notification_utils.StreamNotifications(CLIENT)
 
 
 @CLIENT.event
@@ -102,9 +91,7 @@ async def on_member_update(member_before, member_after):
 
 # We are set up and the Discord client hooks are defined.
 # Now run the bot..:
-
 misc_utils.printInviteLink(CONFIG)
-
 try:
     CLIENT.run(CONFIG.getToken())
 

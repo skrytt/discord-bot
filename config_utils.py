@@ -18,11 +18,11 @@ TWITTER_CONFIG_KEY = "twitter"
 
 def get():
     """ Retrieve a reference to the config object. """
-    if not __Config.instance:
-        __Config.instance = __Config()
-    return __Config.instance
+    if not _Config.instance:
+        _Config.instance = _Config()
+    return _Config.instance
 
-class __Config(object):
+class _Config(object):
     """ Represents a loaded application configuration."""
     instance = None
 

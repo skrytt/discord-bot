@@ -20,7 +20,7 @@ class RolesHandler(handler_base.HandlerBase):
         '''
         author = message.author
         server = message.server
-        server_data = self.server_data_map.get(server)
+        server_data = server_utils.get(server)
 
         # 1. This command is usable in servers only.
         if not server:
@@ -33,7 +33,7 @@ class RolesHandler(handler_base.HandlerBase):
         return True
 
     def getServerMemberAssignableCommandsMessage(self, server):
-        server_data = self.server_data_map.get(server)
+        server_data = server_utils.get(server)
         return '\n'.join([
             'The following rolenames can be set using !sub or !unsub: ',
             '`%s`' % (' '.join(sorted(server_data.getMemberAssignableRoleNames())),)
@@ -46,7 +46,7 @@ class RolesHandler(handler_base.HandlerBase):
 
         # Gather parameters
         try:
-            server_data = self.server_data_map.get(message.server)
+            server_data = server_utils.get(message.server)
             target_action, target_role_name = message.content.split()[:2]
             target_action = target_action.lstrip(server_data.getCommandPrefix())
         except Exception:

@@ -3,6 +3,7 @@ import logging
 import time
 
 import consts
+import database_utils
 
 LAST_STREAM_NOTIFY_TIME_HASH_KEY = 'last_stream_notify_time'
 
@@ -11,24 +12,27 @@ STREAM_ADVERTISE_COOLDOWN = 21600 # 6 hours
 def getMemberSettableAccountTypes():
     return ['steamid', 'battletag']
 
-class MemberDataMap(object):
-    def __init__(self, database):
+def get(member):
+    if not _MemberDataMap.instance:
+        _MemberDataMap.instance = _MemberDataMap()
+    return _MemberDataMap.instance.get(member)
+
+class _MemberDataMap(object):
+    instance = None
+    def __init__(self):
         self.logger = logging.getLogger(consts.LOGGER_NAME)
-        self.database = database
         self._map = {}
 
     def get(self, member):
-        member_data = self._map.setdefault(
-            member.id,
-            MemberData(self.database, member))
+        member_data = self._map.setdefault(member.id, _MemberData(member))
         return member_data
 
-class MemberData(object):
+class _MemberData(object):
     ''' Collates data about a user from their discord object and from our database.
     '''
-    def __init__(self, database, member):
+    def __init__(self, member):
         self.logger = logging.getLogger(consts.LOGGER_NAME)
-        self.database = database
+        self.database = database_utils.get()
         self.member = member
         self._hash = {}
         self.update()

@@ -9,6 +9,7 @@ import asyncio
 import config_utils
 import consts
 import server_utils
+import twitter_client
 
 MINIMUM_TWEET_DELAY_INTERVAL = 60 * 60 # 1 hour
 RANDOM_EXTRA_DELAY_INTERVAL = 60 * 30 # 30 minutes
@@ -19,17 +20,16 @@ def get_delay_time():
 
 class TwitterScheduler(object):
     """ Class to handle scheduling the posting of Tweets to Discord servers. """
-    def __init__(self, server_data_map, client, list_sampler):
+    def __init__(self, client):
         self.logger = logging.getLogger(consts.LOGGER_NAME)
         self.config = config_utils.get()
-        self.server_data_map = server_data_map
         self.client = client
-        self.list_sampler = list_sampler
+        self.list_sampler = twitter_client.LIST_SAMPLER
 
     def start(self, server):
         """ Start sending Tweets to a discord server. """
         try:
-            server_data = self.server_data_map.get(server)
+            server_data = server_utils.get(server)
             twitter_list_data = server_data.getTwitterListData()
 
             list_owner = twitter_list_data[server_utils.TWITTER_LIST_OWNER_DISPLAY_NAME_KEY]
