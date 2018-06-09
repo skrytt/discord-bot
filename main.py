@@ -14,36 +14,45 @@ import database_utils
 import server_utils
 import stream_notification_utils
 import twitter_client
-import twitter_scheduler
+#import twitter_scheduler
 
+DEFAULT_LOG_LEVEL = 'INFO'
+LOG_HANDLER = logging.StreamHandler()
 
 if __name__ != '__main__':
     print('Importing of this module is unsupported')
     sys.exit(1)
 
-
+# LOGGER is for our logs; DISCORD_LOGGER is for those from discord.py.
+# Set a default log level for them until we've loaded the config.
 LOGGER = logging.getLogger(__name__)
+DISCORD_LOGGER = logging.getLogger('discord')
+
+for logger in (LOGGER, DISCORD_LOGGER):
+    logger.setLevel(DEFAULT_LOG_LEVEL)
+    logger.addHandler(LOG_HANDLER)
+
+# Client: The interface to Discord's API
 CLIENT = discord.Client()
 
-# Construct the config object first.
-# Use the config to initialize the logger before we load the real config
-CONFIG = config_utils.Config(LOGGER, CLIENT)
-misc_utils.initializeLogger(LOGGER, CONFIG)
-
-if not CONFIG.load():
-    LOGGER.info('Cannot proceed without configuration - exiting.')
+try:
+    CONFIG = config_utils.Config(LOGGER)
+except RuntimeError:
+    LOGGER.error('Cannot proceed without configuration, exiting.')
     sys.exit(1)
 
-twitter_client.initialize(CONFIG, LOGGER)
+# Now that we have a config, we should enforce the configured logging settings for our logging.
+# Leave Discord.py logging at the default level, we're less interested in it
+LOGGER.setLevel(CONFIG.getLogLevel())
 
-# Now set the configured log level
-misc_utils.setLogLevel(LOGGER, CONFIG)
-
-# Redis backend for persistent storage
+# Interface to Redis backend for persistent storage
 DATABASE = database_utils.Database(CONFIG)
 
 # Mapping of data specific to particular Discord servers
 SERVER_DATA_MAP = server_utils.ServerDataMap(LOGGER, DATABASE)
+
+# Initialize our Twitter API interface
+twitter_client.initialize(CONFIG, LOGGER)
 
 # Dispatcher: knows how to route commands to the objects which will handle them
 DISPATCHER = dispatcher_utils.Dispatcher(
@@ -54,8 +63,8 @@ DISPATCHER = dispatcher_utils.Dispatcher(
 #############################
 
 # Twitter scheduler: periodically tries to send Tweets to channels
-twitter_scheduler.initialize(
-    CONFIG, LOGGER, SERVER_DATA_MAP, CLIENT)
+#twitter_scheduler.initialize(
+#    CONFIG, LOGGER, SERVER_DATA_MAP, CLIENT)
 
 # Stream notifications: reacts to Twitch streams starting and notifies Discord users
 STREAM_NOTIFICATIONS = stream_notification_utils.StreamNotifications(
@@ -73,7 +82,7 @@ async def on_ready():
     # Schedule Twitter stuffs
     for server in CLIENT.servers:
         LOGGER.debug('Joined server %r', server.name)
-        twitter_scheduler.scheduler.start(server)
+        #twitter_scheduler.scheduler.start(server)
 
 
 @CLIENT.event

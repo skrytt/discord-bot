@@ -4,15 +4,6 @@ import logging
 import sys
 import traceback
 
-def initializeLogger(logger, config = None):
-    setLogLevel(logger, config)
-    handler = logging.StreamHandler()
-    logger.addHandler(handler)
-
-def setLogLevel(logger, config):
-    log_level = config.getLogLevel()
-    logger.setLevel(log_level)
-
 def getRequiredBotPermissionsValue():
     ''' Get a permissions value as an integer that can be inserted in a Discord URL to
         invite a bot to a server.
