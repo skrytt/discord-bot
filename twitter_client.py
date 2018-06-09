@@ -11,14 +11,15 @@ import pprint
 
 import aiohttp
 
+import config_utils
 import consts
 
 API_CLIENT = None
 LIST_SAMPLER = None
 
-def initialize(config):
+def initialize():
     global API_CLIENT, LIST_SAMPLER
-    API_CLIENT = TwitterApiClient(config)
+    API_CLIENT = TwitterApiClient()
     LIST_SAMPLER = TwitterListSampler(API_CLIENT)
 
 def _makeNonce():
@@ -74,8 +75,8 @@ class TwitterApiClient(object):
     ''' This class represents a client interface to make Twitter requests.
         It is able to authenticate with Twitter's application-only auth flow.
     '''
-    def __init__(self, config):
-        self.config = config
+    def __init__(self):
+        self.config = config_utils.get()
         self.logger = logging.getLogger(consts.LOGGER_NAME)
         self.session = None
 

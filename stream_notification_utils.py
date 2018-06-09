@@ -1,12 +1,13 @@
 """ Utilities to notify Discord chatrooms when members begin streaming. """
 import logging
 
+import config_utils
 import consts
 
 class StreamNotifications(object):
-    def __init__(self, config, client, server_data_map):
+    def __init__(self, client, server_data_map):
         self.logger = logging.getLogger(consts.LOGGER_NAME)
-        self.config = config
+        self.config = config_utils.get()
         self.client = client
         self.server_data_map = server_data_map
 

@@ -37,7 +37,7 @@ for logger in (LOGGER, DISCORD_LOGGER):
 CLIENT = discord.Client()
 
 try:
-    CONFIG = config_utils.Config()
+    CONFIG = config_utils.get()
 except RuntimeError:
     LOGGER.error('Cannot proceed without configuration, exiting.')
     sys.exit(1)
@@ -47,25 +47,25 @@ except RuntimeError:
 LOGGER.setLevel(CONFIG.getLogLevel())
 
 # Interface to Redis backend for persistent storage
-DATABASE = database_utils.Database(CONFIG)
+DATABASE = database_utils.Database()
 
 # Mapping of data specific to particular Discord servers
 SERVER_DATA_MAP = server_utils.ServerDataMap(DATABASE)
 
 # Initialize our Twitter API interface
-twitter_client.initialize(CONFIG)
+twitter_client.initialize()
 
 # Twitter scheduler: periodically tries to send Tweets to channels
 TWITTER_SCHEDULER = twitter_scheduler.TwitterScheduler(
-    CONFIG, SERVER_DATA_MAP, CLIENT, twitter_client.LIST_SAMPLER)
+        SERVER_DATA_MAP, CLIENT, twitter_client.LIST_SAMPLER)
 
 # Stream notifications: reacts to Twitch streams starting and notifies Discord users
 STREAM_NOTIFICATIONS = stream_notification_utils.StreamNotifications(
-    CONFIG, CLIENT, SERVER_DATA_MAP)
+    CLIENT, SERVER_DATA_MAP)
 
 # Dispatcher: knows how to route commands to the objects which will handle them
 DISPATCHER = dispatcher_utils.Dispatcher(
-    CONFIG, CLIENT, SERVER_DATA_MAP, DATABASE)
+    CLIENT, SERVER_DATA_MAP, DATABASE)
 
 
 @CLIENT.event

@@ -16,19 +16,26 @@ DEFAULT_LOG_LEVEL = "INFO"
 DATABASE_KEY = "database"
 TWITTER_CONFIG_KEY = "twitter"
 
-class Config(object):
-    """ Represents a loaded application configuration.
-    """
-    _raw_config_data = None
-    _log_level = DEFAULT_LOG_LEVEL
-    _client_id = None
-    _token = None
-    _database = None
-    _twitter_config = None
+def get():
+    """ Retrieve a reference to the config object. """
+    if not __Config.instance:
+        __Config.instance = __Config()
+    return __Config.instance
+
+class __Config(object):
+    """ Represents a loaded application configuration."""
+    instance = None
 
     def __init__(self):
         self.logger = logging.getLogger(consts.LOGGER_NAME)
         self._raw_config_data = None
+
+        self._client_id = None
+        self._token = None
+        self._database = None
+        self._log_level = DEFAULT_LOG_LEVEL
+        self._twitter_config = None
+
         self.load()
 
     def getLogLevel(self):

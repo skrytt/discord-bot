@@ -4,6 +4,8 @@
 
 import redis
 
+import config_utils
+
 DISCORD_SERVER_KEY = 'discord_server'
 MULTI_SERVER_SET_KEY = 'multiserver'
 MULTI_MEMBER_SET_KEY = 'multimember'
@@ -16,7 +18,8 @@ def _makeKey(*parts):
 
 class Database(object):
     ''' Represents a database connection to Redis. '''
-    def __init__(self, config):
+    def __init__(self):
+        config = config_utils.get()
         self._db = redis.Redis(**config.getDatabaseConfigMap())
 
     # Server-specific data
