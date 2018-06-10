@@ -1,15 +1,48 @@
 {
-  "bot_client_id": 1234567890,
-  "bot_token": "AsDfGhJkL_",
+  "logging": {
+    "version": 1,
+    "formatters": {
+      "console": {
+        "format": "%(message)s"
+      },
+      "file": {
+        "format": "%(asctime)s %(levelname)-8s %(name)-15s %(message)s",
+        "datefmt": "%Y-%m-%d %H:%M:%S"
+      }
+    },
+    "handlers": {
+      "console": {
+        "class": "logging.StreamHandler",
+        "level": "DEBUG",
+        "formatter": "console"
+      },
+      "file": {
+        "filename": "discord-bot.log",
+        "class": "logging.FileHandler",
+        "level": "DEBUG",
+        "formatter": "file"
+      }
+    },
+    "root": {
+      "level": "DEBUG",
+      "handlers": ["console", "file"]
+    }
+  },
+
+  "discord": {
+    "client_id": 1234567890,
+    "token": "AsDfGhJkL_"
+  },
+
   "database": {
     "host": "localhost",
     "port": 6379
   },
+
   "twitter": {
     "consumer_key": "asdf",
     "consumer_secret": "ghjkl",
     "access_token": "qwert",
     "access_token_secret": "yuiop"
-  },
-  "log_level": "INFO"
+  }
 }
