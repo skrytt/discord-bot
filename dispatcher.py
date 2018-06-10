@@ -2,14 +2,15 @@
 '''
 import logging
 
-import config_utils
 import consts
-import database_utils
-import server_utils
+
+import utils.config
+import utils.database
+import utils.server
 
 # Command handlers
-import server_admin_handler
-import twitter_handler
+from handlers.server_admin import ServerAdminHandler
+from handlers.twitter import TwitterHandler
 
 DEFAULT_COMMAND_PREFIX = '!'
 
@@ -19,18 +20,15 @@ class Dispatcher(object):
     '''
     def __init__(self, client):
         self.logger = logging.getLogger(consts.LOGGER_NAME)
-        self.config = config_utils.get()
+        self.config = utils.config.get()
         self.client = client
-        self.database = database_utils.get()
+        self.database = utils.database.get()
 
         self._command_handler_map = {}
         self._hidden_command_handler_map = {}
 
-        self.registerHandler(
-            server_admin_handler.ServerAdminHandler(self, client))
-
-        self.registerHandler(
-            twitter_handler.TwitterHandler(self, client))
+        self.registerHandler(ServerAdminHandler(self, client))
+        self.registerHandler(TwitterHandler(self, client))
 
     def registerHandler(self, handler):
         ''' Map an iterable of commands to a handler.
@@ -52,7 +50,7 @@ class Dispatcher(object):
         try:
             server = message.server
             if server:
-                server_data = server_utils.get(server)
+                server_data = utils.server.get(server)
                 prefix = server_data.getCommandPrefix()
         except Exception as exc:
             # Notify the server owner when unhandled exceptions propagate to here.
@@ -64,14 +62,14 @@ class Dispatcher(object):
         if not message.content.startswith(prefix):
             return
 
-        self.logger.debug('dispatcher_utils.Dispatcher.dispatch: Passed prefix check')
+        self.logger.debug('utils.dispatcher.Dispatcher.dispatch: Passed prefix check')
         # Get first arg for decision making
         message_content_args = message.content.split()
         first_arg = message_content_args[0].lstrip(prefix)
 
         if first_arg == 'help':
             # request for help. check following args for details
-            self.logger.debug('dispatcher_utils.Dispatcher.dispatch: Help command received')
+            self.logger.debug('utils.dispatcher.Dispatcher.dispatch: Help command received')
             handler = None
             try:
                 second_arg = message_content_args[1]
@@ -80,12 +78,12 @@ class Dispatcher(object):
             except Exception:
                 pass
             if handler:
-                self.logger.debug('dispatcher_utils.Dispatcher.dispatch: Dispatching help command to handler')
+                self.logger.debug('utils.dispatcher.Dispatcher.dispatch: Dispatching help command to handler')
                 await handler.help(message)
                 return
 
             # if we got here, it's a general help request so print supported commands
-            self.logger.debug('dispatcher_utils.Dispatcher.dispatch: Handling top-level help command')
+            self.logger.debug('utils.dispatcher.Dispatcher.dispatch: Handling top-level help command')
             await self.client.send_message(
                 message.channel,
                 'Supported commands: %s' % (
@@ -98,8 +96,8 @@ class Dispatcher(object):
         handler = (self._command_handler_map.get(first_arg) or
                    self._hidden_command_handler_map.get(first_arg))
         if handler is None:
-            self.logger.debug('dispatcher_utils.Dispatcher.dispatch: Can\'t find handler for command')
+            self.logger.debug('utils.dispatcher.Dispatcher.dispatch: Can\'t find handler for command')
             return
 
-        self.logger.debug('dispatcher_utils.Dispatcher.dispatch: Dispatching real command to handler')
+        self.logger.debug('utils.dispatcher.Dispatcher.dispatch: Dispatching real command to handler')
         await handler.apply(message)

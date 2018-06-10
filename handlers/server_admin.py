@@ -1,17 +1,16 @@
 ''' Command handler implementing server admin functionality.
 '''
 
-import discord
-
-import handler_base
-import misc_utils
-import server_utils
+from handlers import handler_base
+import utils.misc
+import utils.server
 
 USAGE_MSG = 'Ask Skrytt for usage details of this command.'
 
 class ServerAdminHandler(handler_base.HandlerBase):
-    commands = ['setcommandprefix', 'setmemberrole', 'setnotificationchannel', 
-            'settwitterlistdata']
+    """ Implement some commands for server admins to configure the bot with. """
+    commands = ['setcommandprefix', 'setmemberrole', 'setnotificationchannel',
+                'settwitterlistdata']
     hidden = True
 
     def permissions(self, message):
@@ -20,7 +19,7 @@ class ServerAdminHandler(handler_base.HandlerBase):
         '''
         author = message.author
         server = message.server
-        server_data = server_utils.get(server)
+        server_data = utils.server.get(server)
 
         # 1. This command is usable in servers only.
         if not server:
@@ -38,7 +37,7 @@ class ServerAdminHandler(handler_base.HandlerBase):
             return
 
         server = message.server
-        server_data = server_utils.get(server)
+        server_data = utils.server.get(server)
 
         # Gather parameters
         try:

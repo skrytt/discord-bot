@@ -9,8 +9,8 @@ import time
 import discord
 
 import consts
-import database_utils
-import member_utils
+import utils.database
+import utils.member
 
 COMMAND_PREFIX_HASH_KEY = 'command_prefix'
 MEMBER_ROLE_HASH_KEY = 'member_role'
@@ -27,7 +27,7 @@ SERVER_DEFAULT_COMMAND_PREFIX = '!'
 def get(server):
     """ Returns a ServerData instance for this server. """
     if not _ServerDataMap.instance:
-        _ServerDataMap.instance = _ServerDataMap(database_utils.get())
+        _ServerDataMap.instance = _ServerDataMap(utils.database.get())
     return _ServerDataMap.instance.get(server)
 
 class _ServerDataMap(object):
@@ -210,12 +210,12 @@ class _ServerData(object):
         return None
 
     def addUserToServerAccountSet(self, account_type, user):
-        assert account_type in member_utils.getMemberSettableAccountTypes()
+        assert account_type in utils.member.getMemberSettableAccountTypes()
         self.database.addItemToServerSpecificSet(self.server.id, account_type, user.id)
         self.update()
 
     def removeUserFromServerAccountSet(self, account_type, user):
-        assert account_type in member_utils.getMemberSettableAccountTypes()
+        assert account_type in utils.member.getMemberSettableAccountTypes()
         self.database.removeItemFromServerSpecificSet(self.server.id, account_type, user.id)
         self.update()
 

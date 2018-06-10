@@ -13,9 +13,9 @@ import re
 
 import discord
 
-import handler_base
-import member_utils
-import server_utils
+from handlers import handler_base
+import utils.member
+import utils.server
 
 ARBITRARY_ID_LENGTH_LIMIT = 128
 
@@ -26,7 +26,7 @@ def getUsageEmbed(server_data, account_type=None):
         embed.add_field(
             name='The following account types are understood by this bot:',
             value='\n'.join([
-                '`%s`' % (' '.join(sorted(member_utils.getMemberSettableAccountTypes()))),
+                '`%s`' % (' '.join(sorted(utils.member.getMemberSettableAccountTypes()))),
                 'Please see `!help <account_type>` to learn how to find each type of account ID!',
             ])
         )
@@ -85,7 +85,7 @@ def getAccountTypeSpecificHelpEmbedEntryDict(account_type):
 def getMemberSettableAccountTypesMessage():
     return '\n'.join([
         'The following account types can be used:',
-        '`%s`' % (' '.join(sorted(member_utils.getMemberSettableAccountTypes())))
+        '`%s`' % (' '.join(sorted(utils.member.getMemberSettableAccountTypes())))
     ])
 
 def _validateSteamCommunityId(steam_community_id):
@@ -137,7 +137,7 @@ class AccountHandler(handler_base.HandlerBase):
         '''
         author = message.author
         server = message.server
-        server_data = server_utils.get(server)
+        server_data = utils.server.get(server)
 
         # 1. This command is usable in servers only.
         if not server:
@@ -150,9 +150,9 @@ class AccountHandler(handler_base.HandlerBase):
         return True
 
     def getServerAccountsByTypeEmbed(self, server, account_type):
-        if account_type not in member_utils.getMemberSettableAccountTypes():
+        if account_type not in utils.member.getMemberSettableAccountTypes():
             return getMemberSettableAccountTypesMessage()
-        server_data = server_utils.get(server)
+        server_data = utils.server.get(server)
         member_ids = server_data.getAccountsByType(account_type)
 
         accounts_text_list = []
@@ -218,7 +218,7 @@ class AccountHandler(handler_base.HandlerBase):
             return
 
         # Gather parameters
-        server_data = server_utils.get(message.server)
+        server_data = utils.server.get(message.server)
         author = message.author
         member_data = server_data.member_data_map.get(author)
         args = message.content.split()
@@ -283,19 +283,19 @@ class AccountHandler(handler_base.HandlerBase):
             return
 
         # Gather parameters
-        server_data = server_utils.get(message.server)
+        server_data = utils.server.get(message.server)
         args = message.content.split()
 
         account_type = None
         try:
             help_arg = args[1].lstrip(server_data.getCommandPrefix())
-            if help_arg in member_utils.getMemberSettableAccountTypes():
+            if help_arg in utils.member.getMemberSettableAccountTypes():
                 account_type = help_arg
         except Exception:
             pass
 
         # Send usage message
-        server_data = server_utils.get(message.server)
+        server_data = utils.server.get(message.server)
         await self.client.send_message(
             message.channel,
             'Usage instructions (enable website preview info in your settings to view):',

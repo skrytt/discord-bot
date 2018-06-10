@@ -11,8 +11,8 @@ import pprint
 
 import aiohttp
 
-import config_utils
 import consts
+import utils.config
 
 API_CLIENT = None
 LIST_SAMPLER = None
@@ -57,26 +57,12 @@ def _makeSignature(logger, method, base_url, request_params, oauth_header_params
 
     return signature
 
-def getUrlsFromTweets(tweet_list):
-    results = []
-    for tweet_data in tweet_list:
-        try:
-            tweet_creator_screen_name = tweet_data["user"]["screen_name"]
-            tweet_id = tweet_data["id"]
-            results.append("https://twitter.com/%s/status/%s" % (
-                    tweet_creator_screen_name, tweet_id))
-        except KeyError:
-            self.logger.debug("getUrlsFromTweets: Bad tweet data from"
-                    "Twitter API, missing id field: %r", tweet_data)
-
-    return results
-
 class TwitterApiClient(object):
     ''' This class represents a client interface to make Twitter requests.
         It is able to authenticate with Twitter's application-only auth flow.
     '''
     def __init__(self):
-        self.config = config_utils.get()
+        self.config = utils.config.get()
         self.logger = logging.getLogger(consts.LOGGER_NAME)
         self.session = None
 
@@ -270,13 +256,27 @@ class TwitterApiClient(object):
         # It's possible there are no tweets the results list.
         return (resp_data, None)
 
+    def getUrlsFromTweets(self, tweet_list):
+        results = []
+        for tweet_data in tweet_list:
+            try:
+                tweet_creator_screen_name = tweet_data["user"]["screen_name"]
+                tweet_id = tweet_data["id"]
+                results.append("https://twitter.com/%s/status/%s" % (
+                        tweet_creator_screen_name, tweet_id))
+            except KeyError:
+                self.logger.debug("TwitterApiClient.getUrlsFromTweets: Bad tweet data from"
+                        "Twitter API, missing id field: %r", tweet_data)
+
+        return results
+
     async def getTweetUrlsFromScreenName(self, twitter_screen_name, max_count=1, since_id=None):
         tweet_list, error_reason = await self.getTweetsFromScreenName(
                 twitter_screen_name, max_count=max_count, since_id=since_id)
         if error_reason:
             return (None, error_reason)
 
-        tweet_urls = getUrlsFromTweets(tweet_list)
+        tweet_urls = self.getUrlsFromTweets(tweet_list)
         return (tweet_urls, None)
 
     async def getTweetUrlsFromList(self, owner_screen_name, list_slug, max_count=1, since_id=None):
@@ -285,7 +285,7 @@ class TwitterApiClient(object):
         if error_reason:
             return (None, error_reason)
 
-        tweet_urls = getUrlsFromTweets(tweet_list)
+        tweet_urls = self.getUrlsFromTweets(tweet_list)
         return (tweet_urls, None)
 
     async def getListData(self, list_owner, list_slug):

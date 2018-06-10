@@ -6,10 +6,10 @@ import random
 
 import asyncio
 
-import config_utils
 import consts
-import server_utils
 import twitter_client
+import utils.config
+import utils.server
 
 MINIMUM_TWEET_DELAY_INTERVAL = 60 * 60 # 1 hour
 RANDOM_EXTRA_DELAY_INTERVAL = 60 * 30 # 30 minutes
@@ -22,20 +22,20 @@ class TwitterScheduler(object):
     """ Class to handle scheduling the posting of Tweets to Discord servers. """
     def __init__(self, client):
         self.logger = logging.getLogger(consts.LOGGER_NAME)
-        self.config = config_utils.get()
+        self.config = utils.config.get()
         self.client = client
         self.list_sampler = twitter_client.LIST_SAMPLER
 
     def start(self, server):
         """ Start sending Tweets to a discord server. """
         try:
-            server_data = server_utils.get(server)
+            server_data = utils.server.get(server)
             twitter_list_data = server_data.getTwitterListData()
 
-            list_owner = twitter_list_data[server_utils.TWITTER_LIST_OWNER_DISPLAY_NAME_KEY]
-            list_slug = twitter_list_data[server_utils.TWITTER_LIST_SLUG_KEY]
+            list_owner = twitter_list_data[utils.server.TWITTER_LIST_OWNER_DISPLAY_NAME_KEY]
+            list_slug = twitter_list_data[utils.server.TWITTER_LIST_SLUG_KEY]
 
-            target_channel_name = twitter_list_data[server_utils.TWITTER_TARGET_CHANNEL_KEY]
+            target_channel_name = twitter_list_data[utils.server.TWITTER_TARGET_CHANNEL_KEY]
             target_channel = server_data.getTextChannelFromName(target_channel_name)
 
             asyncio.ensure_future(self.post_tweets_to_chat(list_owner, list_slug, target_channel))

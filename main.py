@@ -7,11 +7,12 @@ import sys
 
 import discord
 
-import config_utils
 import consts
-import dispatcher_utils
-import misc_utils
-import stream_notification_utils
+import dispatcher
+import utils.config
+import utils.misc
+import utils.stream_notification
+
 import twitter_client
 import twitter_scheduler
 
@@ -35,7 +36,7 @@ for logger in (LOGGER, DISCORD_LOGGER):
 CLIENT = discord.Client()
 
 try:
-    CONFIG = config_utils.get()
+    CONFIG = utils.config.get()
 except RuntimeError:
     LOGGER.error('Cannot proceed without configuration, exiting.')
     sys.exit(1)
@@ -48,20 +49,18 @@ LOGGER.setLevel(CONFIG.getLogLevel())
 twitter_client.initialize()
 
 # Dispatcher: knows how to route commands to the objects which will handle them
-DISPATCHER = dispatcher_utils.Dispatcher(CLIENT)
+DISPATCHER = dispatcher.Dispatcher(CLIENT)
 
 # Twitter scheduler: periodically tries to send Tweets to channels
 TWITTER_SCHEDULER = twitter_scheduler.TwitterScheduler(CLIENT)
 
 # Stream notifications: reacts to Twitch streams starting and notifies Discord users
-STREAM_NOTIFICATIONS = stream_notification_utils.StreamNotifications(CLIENT)
+STREAM_NOTIFICATIONS = utils.stream_notification.StreamNotifications(CLIENT)
 
 
 @CLIENT.event
 async def on_ready():
-    """ Called when bot is logged into Discord.
-        This doesn't necessarily mean the bot is a member of a server yet.
-    """
+    """ Called once the bot is logged into Discord. """
     LOGGER.info('Logged in as user with name %r and ID %r', CLIENT.user.name, CLIENT.user.id)
     CONFIG.load()
 
@@ -91,13 +90,13 @@ async def on_member_update(member_before, member_after):
 
 # We are set up and the Discord client hooks are defined.
 # Now run the bot..:
-misc_utils.printInviteLink(CONFIG)
+utils.misc.printInviteLink(CONFIG)
 try:
     CLIENT.run(CONFIG.getToken())
 
 except Exception as exc:
     LOGGER.error('Handled top level exception: %r', exc)
-    misc_utils.logTraceback(LOGGER)
+    utils.misc.logTraceback(LOGGER)
     raise
 
 finally:

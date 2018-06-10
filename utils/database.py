@@ -4,7 +4,7 @@
 
 import redis
 
-import config_utils
+import utils.config
 
 DISCORD_SERVER_KEY = 'discord_server'
 MULTI_SERVER_SET_KEY = 'multiserver'
@@ -27,7 +27,7 @@ class _Database(object):
     instance = None
 
     def __init__(self):
-        config = config_utils.get()
+        config = utils.config.get()
         self._db = redis.Redis(**config.getDatabaseConfigMap())
 
     # Server-specific data

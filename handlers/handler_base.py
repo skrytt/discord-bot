@@ -2,9 +2,10 @@
 '''
 import logging
 
-import config_utils
 import consts
-import server_utils
+
+import utils.config
+import utils.server
 
 class HandlerBase(object):
     ''' Base class for command handlers.
@@ -16,7 +17,7 @@ class HandlerBase(object):
     def __init__(self, dispatcher, client):
         self.dispatcher = dispatcher
         self.logger = logging.getLogger(consts.LOGGER_NAME)
-        self.config = config_utils.get()
+        self.config = utils.config.get()
         self.client = client
 
     async def permissions(self, message):
@@ -25,7 +26,7 @@ class HandlerBase(object):
         '''
         author = message.author
         server = message.server
-        server_data = server_utils.get(server)
+        server_data = utils.server.get(server)
 
         # 1. This command is usable in servers only.
         if not server:

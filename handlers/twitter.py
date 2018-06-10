@@ -4,10 +4,10 @@
 
 import discord
 
-import handler_base
-import server_utils
-
+from handlers import handler_base
 from twitter_client import TwitterApiClient, TwitterListSampler
+import utils.server
+
 
 USAGE_MSG = '\n'.join([
     '`!twitter list add <display_name>`',
@@ -31,7 +31,7 @@ class TwitterHandler(handler_base.HandlerBase):
         '''
         author = message.author
         server = message.server
-        server_data = server_utils.get(server)
+        server_data = utils.server.get(server)
 
         # 1. This command is usable in servers only.
         if not server:
@@ -76,12 +76,13 @@ class TwitterHandler(handler_base.HandlerBase):
                         await self.help(message)
 
                     # Try to fetch a list of Tweets from the Twitter API
-                    tweet_list, error_reason = await self._twitter_api_client.getTweetUrlsFromScreenName(
-                            twitter_display_name, max_count=1)
+                    tweet_list, error_reason = \
+                            await self._twitter_api_client.getTweetUrlsFromScreenName(
+                                twitter_display_name, max_count=1)
 
                 else:
                     server = message.server
-                    server_data = server_utils.get(server)
+                    server_data = utils.server.get(server)
                     twitter_list_data = server_data.getTwitterListData()
 
                     if not twitter_list_data:
@@ -91,8 +92,8 @@ class TwitterHandler(handler_base.HandlerBase):
                             "There was a database lookup error! Blame the owner!")
                         return
 
-                    list_owner = twitter_list_data[server_utils.TWITTER_LIST_OWNER_DISPLAY_NAME_KEY]
-                    list_slug = twitter_list_data[server_utils.TWITTER_LIST_SLUG_KEY]
+                    list_owner = twitter_list_data[utils.server.TWITTER_LIST_OWNER_DISPLAY_NAME_KEY]
+                    list_slug = twitter_list_data[utils.server.TWITTER_LIST_SLUG_KEY]
 
                     # Try to fetch a list of Tweets from the Twitter API
                     tweet_list, error_reason = await self._twitter_api_client.getTweetUrlsFromList(
@@ -105,8 +106,8 @@ class TwitterHandler(handler_base.HandlerBase):
                         error_reason = "Reason: `%s`" % (error_reason,)
                         response = " ".join([response, error_reason])
 
-                # "No new tweets" scenario
-                elif len(tweet_list) == 0:
+                # "No new tweets" scenario: iterable is empty but is not None
+                elif not tweet_list:
                     response = "No new tweets since last time, sorry!"
 
                 # Success scenario
@@ -127,7 +128,7 @@ class TwitterHandler(handler_base.HandlerBase):
                     return
 
                 server = message.server
-                server_data = server_utils.get(server)
+                server_data = utils.server.get(server)
                 twitter_list_data = server_data.getTwitterListData()
                 if not twitter_list_data:
                     self.logger.error("Could not get Twitter list data from database!")
@@ -136,8 +137,8 @@ class TwitterHandler(handler_base.HandlerBase):
                         "There was a database lookup error! Blame the owner!")
                     return
 
-                list_owner = twitter_list_data[server_utils.TWITTER_LIST_OWNER_DISPLAY_NAME_KEY]
-                list_slug = twitter_list_data[server_utils.TWITTER_LIST_SLUG_KEY]
+                list_owner = twitter_list_data[utils.server.TWITTER_LIST_OWNER_DISPLAY_NAME_KEY]
+                list_slug = twitter_list_data[utils.server.TWITTER_LIST_SLUG_KEY]
 
                 if action == "add":
                     if len(args) != 4:
@@ -150,10 +151,12 @@ class TwitterHandler(handler_base.HandlerBase):
                         await self.help(message)
                         return
 
-                    success, error_reason = await self._twitter_api_client.addUserToList(list_owner, list_slug, twitter_screen_name)
+                    success, error_reason = await self._twitter_api_client.addUserToList(
+                            list_owner, list_slug, twitter_screen_name)
 
                     if success:
-                        response = "Added the Twitter account `%s` to my follow list!" % (twitter_screen_name,)
+                        response = "Added the Twitter account `%s` to my follow list!" % (
+                                twitter_screen_name,)
                     else:
                         response = "Sorry, the request didn't work!"
                         self.logger.debug("error_reason: %r", error_reason)
@@ -174,10 +177,12 @@ class TwitterHandler(handler_base.HandlerBase):
                         await self.help(message)
                         return
 
-                    success, error_reason = await self._twitter_api_client.removeUserFromList(list_owner, list_slug, twitter_screen_name)
+                    success, error_reason = await self._twitter_api_client.removeUserFromList(
+                            list_owner, list_slug, twitter_screen_name)
 
                     if success:
-                        response = "Removed the Twitter account `%s` from my follow list!" % (twitter_screen_name,)
+                        response = "Removed the Twitter account `%s` from my follow list!" % (
+                                twitter_screen_name,)
                     else:
                         response = "Sorry, the request didn't work!"
                         if error_reason:
@@ -191,7 +196,8 @@ class TwitterHandler(handler_base.HandlerBase):
                         await self.help(message)
                         return
 
-                    results, error_reason = await self._twitter_list_sampler.getTweets(list_owner, list_slug)
+                    results, error_reason = await self._twitter_list_sampler.getTweets(
+                            list_owner, list_slug)
                     if results is None:
                         response = "Sorry, the request didn't work!"
                         if error_reason:

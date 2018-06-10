@@ -3,7 +3,7 @@ import logging
 import time
 
 import consts
-import database_utils
+import utils.database
 
 LAST_STREAM_NOTIFY_TIME_HASH_KEY = 'last_stream_notify_time'
 
@@ -32,7 +32,7 @@ class _MemberData(object):
     '''
     def __init__(self, member):
         self.logger = logging.getLogger(consts.LOGGER_NAME)
-        self.database = database_utils.get()
+        self.database = utils.database.get()
         self.member = member
         self._hash = {}
         self.update()
@@ -80,15 +80,15 @@ class _MemberData(object):
         if last_stream_notify_time:
             time_since_last_stream = time.time() - last_stream_notify_time
             if time_since_last_stream < STREAM_ADVERTISE_COOLDOWN:
-                self.logger.debug('member_utils.MemberData.shouldAdvertiseStream: '
+                self.logger.debug('utils.member.MemberData.shouldAdvertiseStream: '
                                   'Last stream notification was %f seconds ago, don\'t advertise',
                                   time_since_last_stream)
                 return False
             else:
-                self.logger.debug('member_utils.MemberData.shouldAdvertiseStream: '
+                self.logger.debug('utils.member.MemberData.shouldAdvertiseStream: '
                                   'Last stream notification was %f seconds ago, advertise',
                                   time_since_last_stream)
         else:
-            self.logger.debug('member_utils.MemberData.shouldAdvertiseStream: '
+            self.logger.debug('utils.member.MemberData.shouldAdvertiseStream: '
                               'First stream for this member, advertise')
         return True

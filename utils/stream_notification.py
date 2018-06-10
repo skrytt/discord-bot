@@ -1,20 +1,21 @@
 """ Utilities to notify Discord chatrooms when members begin streaming. """
 import logging
 
-import config_utils
 import consts
-import server_utils
+
+import utils.config
+import utils.server
 
 class StreamNotifications(object):
     def __init__(self, client):
         self.logger = logging.getLogger(consts.LOGGER_NAME)
-        self.config = config_utils.get()
+        self.config = utils.config.get()
         self.client = client
 
     def isMemberStartingToStream(self, member_before, member_after):
         ''' Return True if the member just began streaming, or False otherwise.
         '''
-        self.logger.debug('In stream_notification_utils.StreamNotifications.isMemberStartingToStream')
+        self.logger.debug('In utils.stream_notification.StreamNotifications.isMemberStartingToStream')
         try:
             new_game_type = member_after.game.type
         except Exception:
@@ -36,35 +37,35 @@ class StreamNotifications(object):
     async def onMemberUpdate(self, member_before, member_after):
         ''' Call whenever a Member is updated.
         '''
-        self.logger.debug('In stream_notification_utils.StreamNotifications.onMemberUpdate')
+        self.logger.debug('In utils.stream_notification.StreamNotifications.onMemberUpdate')
         # Stream start check
         if not self.isMemberStartingToStream(member_before, member_after):
             return
 
         # Permissions check
-        self.logger.debug('stream_notification_utils.StreamNotifications.onMemberUpdate: '
+        self.logger.debug('utils.stream_notification.StreamNotifications.onMemberUpdate: '
                           'Permissions check')
         server = member_after.server
-        server_data = server_utils.get(server)
+        server_data = utils.server.get(server)
         if not server_data.userHasMemberPermissions(member_after):
             return
 
         # Decide whether to advertise the member's stream
-        self.logger.debug('stream_notification_utils.StreamNotifications.onMemberUpdate: '
+        self.logger.debug('utils.stream_notification.StreamNotifications.onMemberUpdate: '
                           'Should advertise stream check')
         member_data = server_data.member_data_map.get(member_after)
         if not member_data.shouldAdvertiseStream():
             return
 
-        self.logger.debug('stream_notification_utils.StreamNotifications.onMemberUpdate: '
+        self.logger.debug('utils.stream_notification.StreamNotifications.onMemberUpdate: '
                           'Calling self.advertiseStream')
         await self.advertiseStream(member_after)
 
     async def advertiseStream(self, member):
         ''' Advertise a stream in the Discord server of the streaming member.
         '''
-        self.logger.debug('In stream_notification_utils.StreamNotifications.advertiseStream')
-        server_data = server_utils.get(member.server)
+        self.logger.debug('In utils.stream_notification.StreamNotifications.advertiseStream')
+        server_data = utils.server.get(member.server)
         notification_channel_name = server_data.getNotificationChannelName()
         notification_channel = server_data.getTextChannelFromName(notification_channel_name)
         if not notification_channel:
@@ -76,14 +77,14 @@ class StreamNotifications(object):
 
         # Update timestamp first to minimise chance of race conditions while
         # waiting for the advert message to be successfully sent
-        self.logger.debug('stream_notification_utils.StreamNotifications.advertiseStream: '
+        self.logger.debug('utils.stream_notification.StreamNotifications.advertiseStream: '
                           'Updating last stream notify time')
-        server_data = server_utils.get(member.server)
+        server_data = utils.server.get(member.server)
         member_data = server_data.member_data_map.get(member)
         member_data.updateLastStreamNotifyTime()
 
         # Now advertise in the configured channel
-        self.logger.debug('stream_notification_utils.StreamNotifications.advertiseStream: '
+        self.logger.debug('utils.stream_notification.StreamNotifications.advertiseStream: '
                           'Sending stream advert message')
         await self.client.send_message(
             notification_channel,
