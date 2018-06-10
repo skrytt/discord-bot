@@ -23,20 +23,25 @@ logging.basicConfig(level=logging.INFO)
 LOGGER = logging.getLogger(__name__)
 
 if __name__ != '__main__':
-    LOGGER.error('Importing of this module is unsupported')
+    LOGGER.info('Importing of this module is unsupported')
     sys.exit(1)
 
 try:
     CONFIG = utils.config.get()
 except RuntimeError:
-    LOGGER.error('Cannot proceed without configuration, exiting.')
+    LOGGER.info('Not proceeding without configuration, exiting.')
     sys.exit(1)
 
 # Now that we have a config, we should enforce the configured logging settings for our logging.
 # Leave Discord.py logging at the default level, we're less interested in it
 LOGGING_CONFIG = CONFIG.getLoggingConfig()
 if LOGGING_CONFIG:
-    logging.config.dictConfig(LOGGING_CONFIG)
+    try:
+        logging.config.dictConfig(LOGGING_CONFIG)
+    except (ValueError, TypeError, AttributeError, ImportError) as exc:
+        LOGGER.error("Error applying logging config: %r", exc)
+        LOGGER.info('Not proceeding without logging configuration, exiting.')
+        sys.exit(1)
 
 DISCORD_CONFIG = CONFIG.getDiscordConfig()
 BOT_CLIENT_ID = DISCORD_CONFIG["client_id"]
