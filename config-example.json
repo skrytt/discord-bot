@@ -2,10 +2,7 @@
   "logging": {
     "version": 1,
     "formatters": {
-      "console": {
-        "format": "%(message)s"
-      },
-      "file": {
+      "general": {
         "format": "%(asctime)s %(levelname)-8s %(name)-15s %(message)s",
         "datefmt": "%Y-%m-%d %H:%M:%S"
       }
@@ -14,13 +11,13 @@
       "console": {
         "class": "logging.StreamHandler",
         "level": "DEBUG",
-        "formatter": "console"
+        "formatter": "general"
       },
       "file": {
         "filename": "discord-bot.log",
         "class": "logging.FileHandler",
         "level": "DEBUG",
-        "formatter": "file"
+        "formatter": "general"
       }
     },
     "root": {
