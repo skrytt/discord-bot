@@ -5,16 +5,11 @@ import json
 import logging
 import os
 
-import consts
-
 CONFIG_JSON_FILE_ENVVAR = "DISCORD_BOT_CONFIG_JSON_FILE"
 BOT_CLIENT_ID_KEY = "bot_client_id"
 BOT_TOKEN_KEY = "bot_token"
-LOG_LEVEL_KEY = "log_level"
+LOGGING_CONFIG_KEY = "logging"
 DEFAULT_LOG_LEVEL = "INFO"
-
-DATABASE_KEY = "database"
-TWITTER_CONFIG_KEY = "twitter"
 
 def get():
     """ Retrieve a reference to the config object. """
@@ -22,36 +17,51 @@ def get():
         _Config.instance = _Config()
     return _Config.instance
 
+def _getConfigSection(raw_config, section_name, required_keys=None, optional=False):
+    """ Retrieve a dictionary representing a section of the bot configuration. """
+    try:
+        section_dict = raw_config[section_name]
+
+        if required_keys:
+            for key in required_keys:
+                if key not in section_dict:
+                    raise KeyError("%r missing from %r section of config" % (
+                        key, section_name))
+
+        return section_dict
+
+    except KeyError:
+        if not optional:
+            raise
+        return None
+
 class _Config(object):
     """ Represents a loaded application configuration."""
     instance = None
 
     def __init__(self):
-        self.logger = logging.getLogger(consts.LOGGER_NAME)
-        self._raw_config_data = None
+        self.logger = logging.getLogger(__name__)
+        self._raw_config = None
 
-        self._client_id = None
-        self._token = None
+        self._logging = None
+        self._discord = None
         self._database = None
-        self._log_level = DEFAULT_LOG_LEVEL
-        self._twitter_config = None
+        self._logging = None
+        self._twitter = None
 
         self.load()
 
-    def getLogLevel(self):
-        return self._log_level
+    def getLoggingConfig(self):
+        return self._logging
 
-    def getClientId(self):
-        return self._client_id
+    def getDiscordConfig(self):
+        return self._discord
 
-    def getToken(self):
-        return self._token
-
-    def getDatabaseConfigMap(self):
+    def getDatabaseConfig(self):
         return self._database
 
     def getTwitterConfig(self):
-        return self._twitter_config
+        return self._twitter
 
     def load(self):
         """ Load the JSON configuration from disk.
@@ -65,7 +75,7 @@ class _Config(object):
             "/etc/discordbot/config.json")
         try:
             with open(config_json_file_path) as config_file:
-                self._raw_config_data = json.load(config_file)
+                self._raw_config = json.load(config_file)
 
         except FileNotFoundError:
             error_message = "No config file found at %s." % (config_json_file_path,)
@@ -76,9 +86,23 @@ class _Config(object):
 
         # Set some attributes for use by convenience methods
         try:
-            self._client_id = self._raw_config_data[BOT_CLIENT_ID_KEY]
-            self._token = self._raw_config_data[BOT_TOKEN_KEY]
-            self._database = self._raw_config_data[DATABASE_KEY]
+            self._discord = _getConfigSection(
+                self._raw_config, "discord",
+                required_keys=("client_id", "token"))
+
+            self._database = _getConfigSection(
+                self._raw_config, "database",
+                required_keys=("host", "port"))
+
+            self._logging = _getConfigSection(
+                self._raw_config, "logging",
+                optional=True)
+
+            self._twitter = _getConfigSection(
+                self._raw_config, "twitter",
+                required_keys=("consumer_key", "consumer_secret",
+                               "access_token", "access_token_secret"),
+                optional=True)
 
         except KeyError as exc:
             error_message = "Failed to load config due to exception: %r" % (exc,)
@@ -86,7 +110,5 @@ class _Config(object):
             raise RuntimeError(error_message)
 
         # More optional attributes for convenience methods
-        self._log_level = self._raw_config_data.get(LOG_LEVEL_KEY, DEFAULT_LOG_LEVEL)
-        self._twitter_config = self._raw_config_data.get(TWITTER_CONFIG_KEY)
 
         self.logger.info("Successfully loaded config.")

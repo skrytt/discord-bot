@@ -18,11 +18,10 @@ def getRequiredBotPermissionsValue():
     )
     return permissions
 
-def printInviteLink(config):
+def getInviteLink(client_id):
     perm_value = getRequiredBotPermissionsValue()
-    print('Invite link:')
-    print('https://discordapp.com/oauth2/authorize?&client_id=%s&scope=bot&permissions=%s'
-          % (config.getClientId(), perm_value))
+    return 'https://discordapp.com/oauth2/authorize?&client_id=%s&scope=bot&permissions=%s' % (
+            client_id, perm_value)
 
 def logTraceback(logger):
     trace = traceback.extract_tb(sys.exc_info()[2])

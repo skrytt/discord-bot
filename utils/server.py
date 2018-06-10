@@ -8,7 +8,6 @@ import time
 
 import discord
 
-import consts
 import utils.database
 import utils.member
 
@@ -34,7 +33,7 @@ class _ServerDataMap(object):
     instance = None
 
     def __init__(self, database):
-        self.logger = logging.getLogger(consts.LOGGER_NAME)
+        self.logger = logging.getLogger(__name__)
         self.database = database
         self._map = {}
 
@@ -49,7 +48,7 @@ class _ServerData(object):
         and from our database.
     '''
     def __init__(self, database, server):
-        self.logger = logging.getLogger(consts.LOGGER_NAME)
+        self.logger = logging.getLogger(__name__)
         self.database = database
         self.server = server
         self._hash = {}

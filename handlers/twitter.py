@@ -5,7 +5,7 @@
 import discord
 
 from handlers import handler_base
-from twitter_client import TwitterApiClient, TwitterListSampler
+from twitter.client import TwitterApiClient, TwitterListSampler
 import utils.server
 
 

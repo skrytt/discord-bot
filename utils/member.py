@@ -2,7 +2,6 @@
 import logging
 import time
 
-import consts
 import utils.database
 
 LAST_STREAM_NOTIFY_TIME_HASH_KEY = 'last_stream_notify_time'
@@ -20,7 +19,7 @@ def get(member):
 class _MemberDataMap(object):
     instance = None
     def __init__(self):
-        self.logger = logging.getLogger(consts.LOGGER_NAME)
+        self.logger = logging.getLogger(__name__)
         self._map = {}
 
     def get(self, member):
@@ -31,7 +30,7 @@ class _MemberData(object):
     ''' Collates data about a user from their discord object and from our database.
     '''
     def __init__(self, member):
-        self.logger = logging.getLogger(consts.LOGGER_NAME)
+        self.logger = logging.getLogger(__name__)
         self.database = utils.database.get()
         self.member = member
         self._hash = {}

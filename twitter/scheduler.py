@@ -6,8 +6,7 @@ import random
 
 import asyncio
 
-import consts
-import twitter_client
+import twitter.client
 import utils.config
 import utils.server
 
@@ -21,10 +20,10 @@ def get_delay_time():
 class TwitterScheduler(object):
     """ Class to handle scheduling the posting of Tweets to Discord servers. """
     def __init__(self, client):
-        self.logger = logging.getLogger(consts.LOGGER_NAME)
+        self.logger = logging.getLogger(__name__)
         self.config = utils.config.get()
         self.client = client
-        self.list_sampler = twitter_client.LIST_SAMPLER
+        self.list_sampler = twitter.client.LIST_SAMPLER
 
     def start(self, server):
         """ Start sending Tweets to a discord server. """

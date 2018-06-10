@@ -11,7 +11,6 @@ import pprint
 
 import aiohttp
 
-import consts
 import utils.config
 
 API_CLIENT = None
@@ -63,7 +62,7 @@ class TwitterApiClient(object):
     '''
     def __init__(self):
         self.config = utils.config.get()
-        self.logger = logging.getLogger(consts.LOGGER_NAME)
+        self.logger = logging.getLogger(__name__)
         self.session = None
 
     async def _getSession(self):
@@ -340,7 +339,7 @@ class TwitterListSampler(object):
         # Weighting factor based on screen name. This exists to reduce likelihood that the same
         # twitter handle will have its tweets shared many times in quick succession.
         # Values should be greater than 0.0.
-        self.logger = logging.getLogger(consts.LOGGER_NAME)
+        self.logger = logging.getLogger(__name__)
         self.twitter_api_client = twitter_api_client
 
         self.list_map = {}

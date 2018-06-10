@@ -2,8 +2,6 @@
 '''
 import logging
 
-import consts
-
 import utils.config
 import utils.server
 
@@ -16,7 +14,7 @@ class HandlerBase(object):
 
     def __init__(self, dispatcher, client):
         self.dispatcher = dispatcher
-        self.logger = logging.getLogger(consts.LOGGER_NAME)
+        self.logger = logging.getLogger(__name__)
         self.config = utils.config.get()
         self.client = client
 

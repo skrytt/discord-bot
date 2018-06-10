@@ -28,7 +28,7 @@ class _Database(object):
 
     def __init__(self):
         config = utils.config.get()
-        self._db = redis.Redis(**config.getDatabaseConfigMap())
+        self._db = redis.Redis(**config.getDatabaseConfig())
 
     # Server-specific data
 

@@ -3,37 +3,28 @@
 """
 
 import logging
+import logging.config
 import sys
 
 import discord
 
-import consts
 import dispatcher
+
 import utils.config
 import utils.misc
 import utils.stream_notification
 
-import twitter_client
-import twitter_scheduler
+import twitter.client
+import twitter.scheduler
 
-DEFAULT_LOG_LEVEL = 'INFO'
-LOG_HANDLER = logging.StreamHandler()
+# Set a default logging config until we have the real config.
+logging.basicConfig(level=logging.INFO)
+
+LOGGER = logging.getLogger(__name__)
 
 if __name__ != '__main__':
-    print('Importing of this module is unsupported')
+    LOGGER.error('Importing of this module is unsupported')
     sys.exit(1)
-
-# LOGGER is for our logs; DISCORD_LOGGER is for those from discord.py.
-# Set a default log level for them until we've loaded the config.
-LOGGER = logging.getLogger(consts.LOGGER_NAME)
-DISCORD_LOGGER = logging.getLogger('discord')
-
-for logger in (LOGGER, DISCORD_LOGGER):
-    logger.setLevel(DEFAULT_LOG_LEVEL)
-    logger.addHandler(LOG_HANDLER)
-
-# Client: The interface to Discord's API
-CLIENT = discord.Client()
 
 try:
     CONFIG = utils.config.get()
@@ -43,16 +34,25 @@ except RuntimeError:
 
 # Now that we have a config, we should enforce the configured logging settings for our logging.
 # Leave Discord.py logging at the default level, we're less interested in it
-LOGGER.setLevel(CONFIG.getLogLevel())
+LOGGING_CONFIG = CONFIG.getLoggingConfig()
+if LOGGING_CONFIG:
+    logging.config.dictConfig(LOGGING_CONFIG)
+
+DISCORD_CONFIG = CONFIG.getDiscordConfig()
+BOT_CLIENT_ID = DISCORD_CONFIG["client_id"]
+BOT_TOKEN = DISCORD_CONFIG["token"]
 
 # Initialize our Twitter API interface
-twitter_client.initialize()
+twitter.client.initialize()
+
+# Client: The interface to Discord's API
+CLIENT = discord.Client()
 
 # Dispatcher: knows how to route commands to the objects which will handle them
 DISPATCHER = dispatcher.Dispatcher(CLIENT)
 
 # Twitter scheduler: periodically tries to send Tweets to channels
-TWITTER_SCHEDULER = twitter_scheduler.TwitterScheduler(CLIENT)
+TWITTER_SCHEDULER = twitter.scheduler.TwitterScheduler(CLIENT)
 
 # Stream notifications: reacts to Twitch streams starting and notifies Discord users
 STREAM_NOTIFICATIONS = utils.stream_notification.StreamNotifications(CLIENT)
@@ -62,7 +62,6 @@ STREAM_NOTIFICATIONS = utils.stream_notification.StreamNotifications(CLIENT)
 async def on_ready():
     """ Called once the bot is logged into Discord. """
     LOGGER.info('Logged in as user with name %r and ID %r', CLIENT.user.name, CLIENT.user.id)
-    CONFIG.load()
 
     # Schedule Twitter stuffs
     for server in CLIENT.servers:
@@ -75,7 +74,7 @@ async def on_message(message):
     """ Called whenever a message is received from Discord. """
 
     # Bot loopback protection
-    if message.author == CONFIG.getClientId():
+    if message.author == BOT_CLIENT_ID:
         return
 
     # Dispatch command
@@ -90,9 +89,9 @@ async def on_member_update(member_before, member_after):
 
 # We are set up and the Discord client hooks are defined.
 # Now run the bot..:
-utils.misc.printInviteLink(CONFIG)
+LOGGER.info(utils.misc.getInviteLink(BOT_CLIENT_ID))
 try:
-    CLIENT.run(CONFIG.getToken())
+    CLIENT.run(BOT_TOKEN)
 
 except Exception as exc:
     LOGGER.error('Handled top level exception: %r', exc)

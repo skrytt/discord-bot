@@ -2,8 +2,6 @@
 '''
 import logging
 
-import consts
-
 import utils.config
 import utils.database
 import utils.server
@@ -19,7 +17,7 @@ class Dispatcher(object):
         handler instance.
     '''
     def __init__(self, client):
-        self.logger = logging.getLogger(consts.LOGGER_NAME)
+        self.logger = logging.getLogger(__name__)
         self.config = utils.config.get()
         self.client = client
         self.database = utils.database.get()
@@ -62,7 +60,7 @@ class Dispatcher(object):
         if not message.content.startswith(prefix):
             return
 
-        self.logger.debug('utils.dispatcher.Dispatcher.dispatch: Passed prefix check')
+        self.logger.debug('Dispatcher.dispatch: Passed prefix check')
         # Get first arg for decision making
         message_content_args = message.content.split()
         first_arg = message_content_args[0].lstrip(prefix)
