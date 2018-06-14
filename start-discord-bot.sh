@@ -20,5 +20,6 @@ docker run -d \
   --name discord-bot \
   -v discord-bot-config:/opt/discord-bot/config \
   --network discord-bot-network \
+  --restart=always \
   discord-bot
 

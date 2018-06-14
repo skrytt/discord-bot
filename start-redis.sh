@@ -20,4 +20,5 @@ docker run -d \
   --name discord-bot-redis \
   -v discord-bot-redis:/data \
   --network discord-bot-network \
+  --restart=always \
   redis redis-server --appendonly yes
