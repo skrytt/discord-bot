@@ -72,7 +72,7 @@ class _Config(object):
         # Load the raw config from disk
         config_json_file_path = os.environ.get(
             CONFIG_JSON_FILE_ENVVAR,
-            "/etc/discordbot/config.json")
+            "/opt/discord-bot/config/config.json")
         try:
             with open(config_json_file_path) as config_file:
                 self._raw_config = json.load(config_file)
