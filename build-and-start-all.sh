@@ -6,5 +6,6 @@ if ! [ "$(id -u)" = "0" ]; then
   exit 1
 fi
 
+./build-discord-bot.sh
 ./start-redis.sh
 ./start-discord-bot.sh
