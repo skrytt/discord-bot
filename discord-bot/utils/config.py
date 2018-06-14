@@ -2,6 +2,7 @@
 """
 
 import json
+import json.decoder
 import logging
 import os
 
@@ -44,6 +45,7 @@ class _Config(object):
         self._raw_config = None
 
         self._logging = None
+        self._jaeger = None
         self._discord = None
         self._database = None
         self._logging = None
@@ -53,6 +55,9 @@ class _Config(object):
 
     def getLoggingConfig(self):
         return self._logging
+
+    def getJaegerConfig(self):
+        return self._jaeger
 
     def getDiscordConfig(self):
         return self._discord
@@ -78,17 +83,28 @@ class _Config(object):
                 self._raw_config = json.load(config_file)
 
         except FileNotFoundError:
-            error_message = "No config file found at %s." % (config_json_file_path,)
+            error_message = "No config file found at %r." % (config_json_file_path,)
             self.logger.error(error_message)
             self.logger.error("Use environment variable %r to set the log file location.",
                 CONFIG_JSON_FILE_ENVVAR)
             raise RuntimeError(error_message)
+
+        except json.decoder.JSONDecodeError as exc:
+            error_message = "Config file at %r can't be parsed: %r" % (
+                    config_json_file_path, exc)
+            self.logger.error(error_message)
+            raise RuntimeError(error_message)
+
 
         # Set some attributes for use by convenience methods
         try:
             self._discord = _getConfigSection(
                 self._raw_config, "discord",
                 required_keys=("client_id", "token"))
+
+            self._jaeger = _getConfigSection(
+                self._raw_config, "jaeger",
+                optional=True)
 
             self._database = _getConfigSection(
                 self._raw_config, "database",
