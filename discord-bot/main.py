@@ -54,7 +54,7 @@ try:
     JAEGER_CONFIG = CONFIG.getJaegerConfig()
     JAEGER_CONFIG_OBJ = jaeger_client.Config(JAEGER_CONFIG)
     TRACER = JAEGER_CONFIG_OBJ.initialize_tracer()
-except ValueError as exc:
+except (ValueError, AttributeError) as exc:
     LOGGER.error("Got error while creating jaeger_client.Config: %r", exc)
     LOGGER.info("Using Opentracing no-op Tracer instead.")
     TRACER = opentracing.Tracer()
