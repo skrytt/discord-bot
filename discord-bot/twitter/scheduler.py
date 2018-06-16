@@ -11,10 +11,8 @@ import utils.config
 import utils.misc
 import utils.server
 
-#MINIMUM_TWEET_DELAY_INTERVAL = 60 * 60 # 1 hour
-#RANDOM_EXTRA_DELAY_INTERVAL = 60 * 30 # 30 minutes
-MINIMUM_TWEET_DELAY_INTERVAL = 10 # 1 minute
-RANDOM_EXTRA_DELAY_INTERVAL = 5 # 30 seconds
+MINIMUM_TWEET_DELAY_INTERVAL = 60 * 60 # 1 hour
+RANDOM_EXTRA_DELAY_INTERVAL = 60 * 30 # 30 minutes
 
 def get_delay_time():
     """ Return the time to wait before posting a tweet. """
