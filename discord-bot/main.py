@@ -6,6 +6,7 @@ import logging
 import logging.config
 import sys
 
+import asyncio
 import discord
 import jaeger_client
 import opentracing
@@ -82,7 +83,8 @@ async def on_ready():
     # Schedule Twitter stuffs
     for server in CLIENT.servers:
         LOGGER.info('Joined server %r', server.name)
-        TWITTER_SCHEDULER.start(server)
+        asyncio.get_event_loop().call_soon(
+            asyncio.ensure_future(TWITTER_SCHEDULER.run(server)))
 
 
 @CLIENT.event
