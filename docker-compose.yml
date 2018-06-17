@@ -1,0 +1,31 @@
+version: '2'
+
+services:
+
+  # The Redis database backend for the bot
+  redis:
+    container_name: discord-bot-redis
+    image: "redis:latest"
+    volumes:
+      - /var/opt/discordbot/redis:/data
+    networks:
+      - network-bot
+    command:
+      --appendonly yes
+    restart: always
+
+  # The main bot application
+  discord-bot:
+    depends_on:
+      - redis
+    container_name: discord-bot
+    image: "discord-bot:latest"
+    volumes:
+      - ./config:/opt/discord-bot/config
+    networks:
+      - network-bot
+    restart: always
+
+networks:
+  network-bot:
+
