@@ -26,77 +26,80 @@ if __name__ != '__main__':
     sys.exit(1)
 
 try:
-    CONFIG = utils.config.get()
+    config = utils.config.get()
 except RuntimeError:
     logging.info('Not proceeding without configuration, exiting.')
     sys.exit(1)
 
 # Now that we have a config, we should enforce the configured logging settings for our logging.
 # Leave Discord.py logging at the default level, we're less interested in it
-LOGGING_CONFIG = CONFIG.getLoggingConfig()
-if LOGGING_CONFIG:
+logging_config = config.getLoggingConfig()
+if logging_config:
     try:
-        logging.config.dictConfig(LOGGING_CONFIG)
+        logging.config.dictConfig(logging_config)
     except (ValueError, TypeError, AttributeError, ImportError) as exc:
         logging.error("Error applying logging config: %r", exc)
         logging.info('Not proceeding without logging configuration, exiting.')
         sys.exit(1)
 
 # Logging config is loaded so start using it
-LOGGER = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
-DISCORD_CONFIG = CONFIG.getDiscordConfig()
-BOT_CLIENT_ID = DISCORD_CONFIG["client_id"]
-BOT_TOKEN = DISCORD_CONFIG["token"]
+discord_config = config.getDiscordConfig()
+bot_client_id = discord_config["client_id"]
+bot_token = discord_config["token"]
 
-TRACER = None
+tracer = None
 try:
-    JAEGER_CONFIG = CONFIG.getJaegerConfig()
-    JAEGER_CONFIG_OBJ = jaeger_client.Config(JAEGER_CONFIG)
-    TRACER = JAEGER_CONFIG_OBJ.initialize_tracer()
+    jaeger_config = config.getJaegerConfig()
+    jaeger_config_obj = jaeger_client.Config(jaeger_config)
+    tracer = jaeger_config_obj.initialize_tracer()
 except (ValueError, AttributeError) as exc:
-    LOGGER.error("Got error while creating jaeger_client.Config: %r", exc)
-    LOGGER.info("Using Opentracing no-op Tracer instead.")
-    TRACER = opentracing.Tracer()
+    logger.error("Got error while creating jaeger_client.Config: %r", exc)
+    logger.info("Using Opentracing no-op Tracer instead.")
+    tracer = opentracing.Tracer()
 
 # Initialize our Twitter API interface
 twitter.client.initialize()
 
 # Client: The interface to Discord's API
-CLIENT = discord.Client()
+discord_client = discord.Client()
 
 # Dispatcher: knows how to route commands to the objects which will handle them
-DISPATCHER = dispatcher.Dispatcher(CLIENT)
+dispatcher = dispatcher.Dispatcher(discord_client)
 
 # Twitter scheduler: periodically tries to send Tweets to channels
-TWITTER_SCHEDULER = twitter.scheduler.TwitterScheduler(CLIENT)
+twitter_scheduler = twitter.scheduler.TwitterScheduler(discord_client)
 
 # Stream notifications: reacts to Twitch streams starting and notifies Discord users
-STREAM_NOTIFICATIONS = utils.stream_notification.StreamNotifications(CLIENT)
+stream_notifications = utils.stream_notification.StreamNotifications(discord_client)
 
 
-@CLIENT.event
+@discord_client.event
 async def on_ready():
     """ Called once the bot is logged into Discord. """
-    LOGGER.info('Logged in as user with name %r and ID %r', CLIENT.user.name, CLIENT.user.id)
+    logger.info('Logged in as user with name %r and ID %r',
+                discord_client.user.name, discord_client.user.id)
 
     # Schedule Twitter stuffs
-    for server in CLIENT.servers:
-        LOGGER.info('Joined server %r', server.name)
+    for server in discord_client.servers:
+        logger.info('Joined server %r', server.name)
+
+        # Create asyncio tasks to run the Twitter scheduler for each server
         asyncio.get_event_loop().call_soon(
-            asyncio.ensure_future(TWITTER_SCHEDULER.run(server)))
+            asyncio.ensure_future(twitter_scheduler.run(server)))
 
 
-@CLIENT.event
+@discord_client.event
 async def on_message(message):
     """ Called whenever a message is received from Discord. """
-    with TRACER.start_span('on_message') as span:
+    # We'll only trace
+    with tracer.start_span('on_message') as span:
 
         # Bot loopback protection
-        if message.author == BOT_CLIENT_ID:
+        if message.author == bot_client_id:
             return
 
-        # Dispatch command
         span.set_tag("author_name", message.author.name)
         span.set_tag("channel_type", str(message.channel.type))
 
@@ -110,25 +113,26 @@ async def on_message(message):
         if channel_name:
             span.set_tag("channel_name", channel_name)
 
-        await DISPATCHER.dispatch(message, parent_span=span)
+        # Dispatch command
+        await dispatcher.dispatch(message, parent_span=span)
 
 
-@CLIENT.event
+@discord_client.event
 async def on_member_update(member_before, member_after):
     """ Called when a Member updates their profile. """
-    await STREAM_NOTIFICATIONS.onMemberUpdate(member_before, member_after)
+    await stream_notifications.onMemberUpdate(member_before, member_after)
 
 
 # We are set up and the Discord client hooks are defined.
 # Now run the bot..:
-LOGGER.info("Invite link: %s", utils.misc.getInviteLink(BOT_CLIENT_ID))
+logger.info("Invite link: %s", utils.misc.getInviteLink(bot_client_id))
 try:
-    CLIENT.run(BOT_TOKEN)
+    discord_client.run(bot_token)
 
 except Exception as exc:
-    LOGGER.error('Handled top level exception: %r', exc)
-    utils.misc.logTraceback(LOGGER)
+    logger.error('Handled top level exception: %r', exc)
+    utils.misc.logTraceback(logger)
     raise
 
 finally:
-    CLIENT.close()
+    discord_client.close()
