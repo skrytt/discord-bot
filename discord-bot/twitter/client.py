@@ -13,19 +13,19 @@ import aiohttp
 import utils.config
 import twitter.sampler
 
-API_CLIENT = None
-LIST_SAMPLER = None
+api_client = None
+list_sampler = None
 
 def initialize():
-    global API_CLIENT, LIST_SAMPLER
-    API_CLIENT = TwitterApiClient()
-    LIST_SAMPLER = twitter.sampler.TwitterListSampler(API_CLIENT)
+    global api_client, list_sampler
+    api_client = TwitterApiClient()
+    list_sampler = twitter.sampler.TwitterListSampler(api_client)
 
-def _makeNonce():
+def _make_nonce():
     ''' Return a random string to use as a request identifier. '''
     return ''.join([str(random.randint(0, 9)) for i in range(32)])
 
-def _makeSignature(logger, method, base_url, request_params, oauth_header_params,
+def _make_signature(logger, method, base_url, request_params, oauth_header_params,
         consumer_secret, access_token_secret):
     ''' Generate an OAuth request signature based on the provided data. '''
 
@@ -65,19 +65,19 @@ class TwitterApiClient(object):
         self.logger = logging.getLogger(__name__)
         self.session = None
 
-    async def _getSession(self):
+    async def _get_session(self):
         ''' Retrieve the AIOHTTP client session object.
         '''
         if not self.session:
             self.session = aiohttp.ClientSession()
         return self.session
 
-    def _getAuthorizationHeaderValue(self, method, base_url, request_params):
+    def _get_authorization_header_value(self, method, base_url, request_params):
         ''' Returns a two part tuple: (result, error_reason).
             - On success, result is the value for an Authorization header and error_reason is None.
             - On failure, result is None and error_reason explains why.
         '''
-        twitter_config = self.config.getTwitterConfig()
+        twitter_config = self.config.get_twitter_config()
         if not all([key in twitter_config for key in (
                 "consumer_key", "consumer_secret", "access_token", "access_token_secret")]):
             error_reason = "The bot isn't configured to talk to Twitter, ask the owner to fix this!"
@@ -88,7 +88,7 @@ class TwitterApiClient(object):
         # Details for the Authorization header and the signature
         oauth_header_params = {
             "oauth_consumer_key": twitter_config["consumer_key"],
-            "oauth_nonce": _makeNonce(),
+            "oauth_nonce": _make_nonce(),
             "oauth_signature_method": "HMAC-SHA1",
             "oauth_timestamp": str(int(time.time())),
             "oauth_token": twitter_config["access_token"],
@@ -99,7 +99,7 @@ class TwitterApiClient(object):
         consumer_secret = twitter_config["consumer_secret"]
         access_token_secret = twitter_config["access_token_secret"]
 
-        oauth_header_params["oauth_signature"] = _makeSignature(self.logger, method, base_url,
+        oauth_header_params["oauth_signature"] = _make_signature(self.logger, method, base_url,
             request_params, oauth_header_params, consumer_secret, access_token_secret)
 
         auth_header = "OAuth %s" % (', '.join(
@@ -110,17 +110,17 @@ class TwitterApiClient(object):
 
         return (auth_header, None)
 
-    async def _apiRequest(self, method, url, request_params):
+    async def _api_request(self, method, url, request_params):
         ''' Returns a two-part tuple: (resp_status, resp_data).
             - On failure to make a request, both values are None.
         '''
-        auth_header_value, error_reason = self._getAuthorizationHeaderValue(
+        auth_header_value, error_reason = self._get_authorization_header_value(
                 method, url, request_params)
         if not auth_header_value:
             return (None, None)
 
         # Make the request
-        client = await self._getSession()
+        client = await self._get_session()
 
         async with client.request(method, url, headers={"Authorization": auth_header_value},
                 params=request_params) as response:
@@ -129,7 +129,7 @@ class TwitterApiClient(object):
 
             return (response.status, resp_data)
 
-    def _getErrorReason(self, resp_status, resp_data):
+    def _get_error_reason(self, resp_status, resp_data):
         ''' Get an error from the response status and data, if there is one.
             If there is no error, return None.
         '''
@@ -150,7 +150,7 @@ class TwitterApiClient(object):
 
         return None
 
-    async def _listMembersAction(self, list_owner, list_slug, twitter_screen_name, action):
+    async def _list_members_action(self, list_owner, list_slug, twitter_screen_name, action):
         ''' Supported actions: "create", "destroy".
 
             Returns a two-part tuple: (success_bool, error_reason).
@@ -165,21 +165,21 @@ class TwitterApiClient(object):
             "screen_name": twitter_screen_name,
         }
 
-        auth_header_value, error_reason = self._getAuthorizationHeaderValue(
+        auth_header_value, error_reason = self._get_authorization_header_value(
                 method, url, request_params)
         if not auth_header_value:
             return (False, error_reason)
 
         # Make the request
-        resp_status, resp_data = await self._apiRequest(method, url, request_params)
-        error_reason = self._getErrorReason(resp_status, resp_data)
+        resp_status, resp_data = await self._api_request(method, url, request_params)
+        error_reason = self._get_error_reason(resp_status, resp_data)
         if error_reason:
             return (None, error_reason)
 
         # Success
         return (True, None)
 
-    async def getTweetsFromScreenName(self, twitter_screen_name, max_count=1, since_id=None):
+    async def get_tweets_from_screen_name(self, twitter_screen_name, max_count=1, since_id=None):
         ''' Get a list of tweet URLs posted by the user with the specified twitter_screen_name.
             - max_count: the maximum number of results that can be returned in the list.
             - since_id: if provided, Twitter will only return tweets with IDs later than this.
@@ -200,8 +200,8 @@ class TwitterApiClient(object):
         if since_id:
             request_params["since_id"] = since_id
 
-        resp_status, resp_data = await self._apiRequest(method, url, request_params)
-        error_reason = self._getErrorReason(resp_status, resp_data)
+        resp_status, resp_data = await self._api_request(method, url, request_params)
+        error_reason = self._get_error_reason(resp_status, resp_data)
         if error_reason:
             return (None, error_reason)
 
@@ -209,7 +209,7 @@ class TwitterApiClient(object):
         # It's possible there are no tweets the results list.
         return (resp_data, None)
 
-    async def getTweetsFromList(self, owner_screen_name, list_slug, max_count=1, since_id=None):
+    async def get_tweets_from_list(self, owner_screen_name, list_slug, max_count=1, since_id=None):
         ''' Get the last tweet posted by any member of the specified list.
             - max_count: the maximum number of results that can be returned in the list.
             - since_id: if provided, Twitter will only return tweets with IDs later than this.
@@ -232,8 +232,8 @@ class TwitterApiClient(object):
         if since_id:
             request_params["since_id"] = since_id
 
-        resp_status, resp_data = await self._apiRequest(method, url, request_params)
-        error_reason = self._getErrorReason(resp_status, resp_data)
+        resp_status, resp_data = await self._api_request(method, url, request_params)
+        error_reason = self._get_error_reason(resp_status, resp_data)
         if error_reason:
             return (None, error_reason)
 
@@ -241,7 +241,7 @@ class TwitterApiClient(object):
         # It's possible there are no tweets the results list.
         return (resp_data, None)
 
-    def getUrlsFromTweets(self, tweet_list):
+    def get_urls_from_tweets(self, tweet_list):
         results = []
         for tweet_data in tweet_list:
             try:
@@ -255,25 +255,25 @@ class TwitterApiClient(object):
 
         return results
 
-    async def getTweetUrlsFromScreenName(self, twitter_screen_name, max_count=1, since_id=None):
-        tweet_list, error_reason = await self.getTweetsFromScreenName(
+    async def get_tweet_urls_from_screen_name(self, twitter_screen_name, max_count=1, since_id=None):
+        tweet_list, error_reason = await self.get_tweets_from_screen_name(
                 twitter_screen_name, max_count=max_count, since_id=since_id)
         if error_reason:
             return (None, error_reason)
 
-        tweet_urls = self.getUrlsFromTweets(tweet_list)
+        tweet_urls = self.get_urls_from_tweets(tweet_list)
         return (tweet_urls, None)
 
-    async def getTweetUrlsFromList(self, owner_screen_name, list_slug, max_count=1, since_id=None):
-        tweet_list, error_reason = await self.getTweetsFromList(
+    async def get_tweet_urls_from_list(self, owner_screen_name, list_slug, max_count=1, since_id=None):
+        tweet_list, error_reason = await self.get_tweets_from_list(
                 owner_screen_name, list_slug, max_count=max_count, since_id=since_id)
         if error_reason:
             return (None, error_reason)
 
-        tweet_urls = self.getUrlsFromTweets(tweet_list)
+        tweet_urls = self.get_urls_from_tweets(tweet_list)
         return (tweet_urls, None)
 
-    async def getListData(self, list_owner, list_slug):
+    async def get_list_data(self, list_owner, list_slug):
         ''' Return data about a Twitter list.
         '''
         method = "GET"
@@ -283,32 +283,32 @@ class TwitterApiClient(object):
             "slug": list_slug
         }
 
-        resp_status, resp_data = await self._apiRequest(method, url, request_params)
-        error_reason = self._getErrorReason(resp_status, resp_data)
+        resp_status, resp_data = await self._api_request(method, url, request_params)
+        error_reason = self._get_error_reason(resp_status, resp_data)
         if error_reason:
             return (None, error_reason)
 
         return (resp_data, None)
 
 
-    async def addUserToList(self, list_owner, list_slug, twitter_screen_name):
+    async def add_user_to_list(self, list_owner, list_slug, twitter_screen_name):
         ''' Add a user to a Twitter list.
 
             Returns a two-part tuple: (result, error_reason).
             - result is a bool value that indicates whether we were successful.
             - if result is false, error_reason explains why.
         '''
-        result, error_reason = await self._listMembersAction(
+        result, error_reason = await self._list_members_action(
                 list_owner, list_slug, twitter_screen_name, "create")
         return (result, error_reason)
 
-    async def removeUserFromList(self, list_owner, list_slug, twitter_screen_name):
+    async def remove_user_from_list(self, list_owner, list_slug, twitter_screen_name):
         ''' Remove a user from a Twitter list.
 
             Returns a two-part tuple: (result, error_reason).
             - result is a bool value that indicates whether we were successful.
             - if result is false, error_reason explains why.
         '''
-        result, error_reason = await self._listMembersAction(
+        result, error_reason = await self._list_members_action(
                 list_owner, list_slug, twitter_screen_name, "destroy")
         return (result, error_reason)

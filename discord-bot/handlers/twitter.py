@@ -10,52 +10,29 @@ from twitter.sampler import TwitterListSampler
 import utils.server
 
 
-USAGE_MSG = '\n'.join([
+usage_msg = '\n'.join([
     '`!twitter list add <display_name>`',
     '`!twitter list remove <display_name>`',
     '`!twitter lasttweet`',
-    '`!twitter lasttweet <display_name>`',
-    '`!twitter list sample`'
+    '`!twitter lasttweet <display_name>`'
 ])
+
 class TwitterHandler(handler_base.HandlerBase):
     commands = ['twitter']
-    hidden = False
+    permissions_level = handler_base.permissions_member
 
     def __init__(self, *args, **kwargs):
         super(TwitterHandler, self).__init__(*args, **kwargs)
         self._twitter_api_client = TwitterApiClient()
         self._twitter_list_sampler = TwitterListSampler(self._twitter_api_client)
 
-    def permissions(self, message):
-        ''' Return True if the user has permission to perform this action,
-            False otherwise.
-        '''
-        author = message.author
-        server = message.server
-        server_data = utils.server.get(server)
-
-        # 1. This command is usable in servers only.
-        if not server:
-            return False
-
-        # 2. This command is usable by server members with the Member role only.
-        if not server_data.userHasMemberPermissions(author):
-            return False
-
-        return True
-
-    async def apply(self, message):
-        # Permission check
-        if not self.permissions(message):
-            return
-
+    async def apply(self, context):
         # Gather parameters
         try:
-            assert message.content.startswith('!twitter'), \
+            args = context.args
+            assert args[0] == 'twitter', \
                     "Entered TwitterHandler apply but base command was not !twitter: %r" % (
-                        message.content)
-
-            args = message.content.split()
+                        context.message.content)
 
             self.logger.debug("Handling !twitter command with args: %r", args)
 
@@ -65,7 +42,7 @@ class TwitterHandler(handler_base.HandlerBase):
 
                 num_args = len(args)
                 if num_args < 2 or num_args > 3:
-                    await self.help(message)
+                    await self.help(context)
                     return
 
                 # # !twitter lasttweet <twitter_display_name>
@@ -74,30 +51,30 @@ class TwitterHandler(handler_base.HandlerBase):
 
                     # Guard against empty strings
                     if not twitter_display_name:
-                        await self.help(message)
+                        await self.help(context)
 
                     # Try to fetch a list of Tweets from the Twitter API
                     tweet_list, error_reason = \
-                            await self._twitter_api_client.getTweetUrlsFromScreenName(
+                            await self._twitter_api_client.get_tweet_urls_from_screen_name(
                                 twitter_display_name, max_count=1)
 
                 else:
-                    server = message.server
+                    server = context.message.server
                     server_data = utils.server.get(server)
-                    twitter_list_data = server_data.getTwitterListData()
+                    twitter_list_data = server_data.get_twitter_list_data()
 
                     if not twitter_list_data:
                         self.logger.error("Could not get Twitter list data from database!")
                         await self.client.send_message(
-                            message.channel,
+                            context.message.channel,
                             "There was a database lookup error! Blame the owner!")
                         return
 
-                    list_owner = twitter_list_data[utils.server.TWITTER_LIST_OWNER_DISPLAY_NAME_KEY]
-                    list_slug = twitter_list_data[utils.server.TWITTER_LIST_SLUG_KEY]
+                    list_owner = twitter_list_data[utils.server.twitter_list_owner_display_name_key]
+                    list_slug = twitter_list_data[utils.server.twitter_list_slug_key]
 
                     # Try to fetch a list of Tweets from the Twitter API
-                    tweet_list, error_reason = await self._twitter_api_client.getTweetUrlsFromList(
+                    tweet_list, error_reason = await self._twitter_api_client.get_tweet_urls_from_list(
                             list_owner, list_slug, max_count=1)
 
                 # All error scenarios
@@ -115,7 +92,7 @@ class TwitterHandler(handler_base.HandlerBase):
                 else:
                     response = tweet_list[0]
 
-                await self.client.send_message(message.channel, response)
+                await self.client.send_message(context.message.channel, response)
 
             # !twitter list add <twitter_display_name>
             # !twitter list remove <twitter_display_name>
@@ -125,34 +102,34 @@ class TwitterHandler(handler_base.HandlerBase):
 
                 # Don't allow empty strings as parameters
                 if not action:
-                    await self.help(message)
+                    await self.help(context)
                     return
 
-                server = message.server
+                server = context.message.server
                 server_data = utils.server.get(server)
-                twitter_list_data = server_data.getTwitterListData()
+                twitter_list_data = server_data.get_twitter_list_data()
                 if not twitter_list_data:
                     self.logger.error("Could not get Twitter list data from database!")
                     await self.client.send_message(
-                        message.channel,
+                        context.message.channel,
                         "There was a database lookup error! Blame the owner!")
                     return
 
-                list_owner = twitter_list_data[utils.server.TWITTER_LIST_OWNER_DISPLAY_NAME_KEY]
-                list_slug = twitter_list_data[utils.server.TWITTER_LIST_SLUG_KEY]
+                list_owner = twitter_list_data[utils.server.twitter_list_owner_display_name_key]
+                list_slug = twitter_list_data[utils.server.twitter_list_slug_key]
 
                 if action == "add":
                     if len(args) != 4:
-                        await self.help(message)
+                        await self.help(context)
                         return
 
                     twitter_screen_name = args[3] # any twitter screen name, case doesn't matter
                     # Don't allow empty strings as parameters
                     if not twitter_screen_name:
-                        await self.help(message)
+                        await self.help(context)
                         return
 
-                    success, error_reason = await self._twitter_api_client.addUserToList(
+                    success, error_reason = await self._twitter_api_client.add_user_to_list(
                             list_owner, list_slug, twitter_screen_name)
 
                     if success:
@@ -165,20 +142,20 @@ class TwitterHandler(handler_base.HandlerBase):
                             error_reason = "Reason: `%s`" % (error_reason,)
                             response = " ".join([response, error_reason])
 
-                    await self.client.send_message(message.channel, response)
+                    await self.client.send_message(context.message.channel, response)
 
                 elif action == "remove":
                     if len(args) != 4:
-                        await self.help(message)
+                        await self.help(context)
                         return
 
                     twitter_screen_name = args[3] # any twitter screen name, case doesn't matter
                     # Don't allow empty strings as parameters
                     if not twitter_screen_name:
-                        await self.help(message)
+                        await self.help(context)
                         return
 
-                    success, error_reason = await self._twitter_api_client.removeUserFromList(
+                    success, error_reason = await self._twitter_api_client.remove_user_from_list(
                             list_owner, list_slug, twitter_screen_name)
 
                     if success:
@@ -190,49 +167,22 @@ class TwitterHandler(handler_base.HandlerBase):
                             error_reason = "Reason: `%s`" % (error_reason,)
                             response = " ".join([response, error_reason])
 
-                    await self.client.send_message(message.channel, response)
-
-                elif action == "sample":
-                    if len(args) != 3:
-                        await self.help(message)
-                        return
-
-                    results, error_reason = await self._twitter_list_sampler.getTweets(
-                            list_owner, list_slug)
-                    if results is None:
-                        response = "Sorry, the request didn't work!"
-                        if error_reason:
-                            error_reason = "Reason: `%s`" % (error_reason,)
-                            response = " ".join([response, error_reason])
-
-                    elif len(results) == 0:
-                        response = "Sorry, there were no tweets in the results!"
-
-                    else:
-                        response = '`%s`' % ('\n'.join(
-                            ["%s (%.2f)" % (tweet_url, weighted_score)
-                                    for tweet_url, weighted_score in results]
-                        ),)
-
-                    await self.client.send_message(message.channel, response)
+                    await self.client.send_message(context.message.channel, response)
 
             # Help request case
             elif args[1] == "help":
-                await self.help(message)
+                await self.help(context)
 
             # Unknown action case
             else:
-                await self.help(message)
+                await self.help(context)
 
         except discord.Forbidden:
-            self.logger.warning('No permission for tweet action with author %r' % (message.author,))
+            self.logger.warning('No permission for tweet action with author %r',
+                context.message.author)
 
-    async def help(self, message):
-        # Permission check
-        if not self.permissions(message):
-            return
-        # Send usage message
+    async def help(self, context):
         await self.client.send_message(
-            message.channel,
-            USAGE_MSG
+            context.message.channel,
+            usage_msg
         )

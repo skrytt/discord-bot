@@ -4,7 +4,7 @@ import logging
 import sys
 import traceback
 
-def getRequiredBotPermissionsValue():
+def get_required_bot_permissions_value():
     ''' Get a permissions value as an integer that can be inserted in a Discord URL to
         invite a bot to a server.
     '''
@@ -18,12 +18,12 @@ def getRequiredBotPermissionsValue():
     )
     return permissions
 
-def getInviteLink(client_id):
-    perm_value = getRequiredBotPermissionsValue()
+def get_invite_link(client_id):
+    perm_value = get_required_bot_permissions_value()
     return 'https://discordapp.com/oauth2/authorize?&client_id=%s&scope=bot&permissions=%s' % (
             client_id, perm_value)
 
-def logTraceback(logger):
+def log_traceback(logger):
     trace = traceback.extract_tb(sys.exc_info()[2])
     logger.error('Traceback: ')
     # Lines are four part tuples (file, linenum, funcname, text)

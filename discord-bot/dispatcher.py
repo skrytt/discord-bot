@@ -12,14 +12,14 @@ import utils.server
 from handlers.server_admin import ServerAdminHandler
 from handlers.twitter import TwitterHandler
 
-_default_command_prefix = '!'
+logger = logging.getLogger(__name__)
+
 
 class Dispatcher(object):
     """ Accepts messages and possibly dispatches them to an appropriate
         handler instance.
     """
     def __init__(self, client):
-        self.logger = logging.getLogger(__name__)
         self.config = utils.config.get()
         self.client = client
         self.database = utils.database.get()
@@ -31,81 +31,91 @@ class Dispatcher(object):
         self.register_handler(TwitterHandler(self, client))
 
     def register_handler(self, handler):
-        """ Map an iterable of commands to a handler.
-            If hidden=True, these won't show up in !help.
-        """
-        if handler.hidden:
-            map_to_use = self._hidden_command_handler_map
-        else:
+        """ Map an iterable of commands to a handler. """
+        if handler.show_in_help():
             map_to_use = self._command_handler_map
+        else:
+            map_to_use = self._hidden_command_handler_map
 
         for command in handler.commands:
             map_to_use[command] = handler
 
-    async def dispatch(self, message, parent_span):
+    async def dispatch(self, context, parent_span):
         """ Try to dispatch message to an appropriate handler instance. """
         with opentracing.tracer.start_span(
                 "Dispatcher.dispatch", child_of=parent_span) as dispatch_span:
-            # Get prefix to use
-            prefix = _default_command_prefix
-            try:
-                server = message.server
-                if server:
-                    server_data = utils.server.get(server)
-                    prefix = server_data.getCommandPrefix()
 
-            except Exception as exc:
-                # Notify the server owner when unhandled exceptions propagate to here.
-                # This means there is a bug in the handler!
-                if server:
-                    with opentracing.tracer.start_span(
-                            "client.send_message", child_of=dispatch_span):
-                        await self.client.send_message(server.owner, exc)
-
-            # Prefix check
-            if not message.content.startswith(prefix):
+            # Ignore messages outside of servers.
+            if not context.message.server:
+                await self.client.send_message(
+                        context.message.channel,
+                        "Please use any from a Discord server text channel that I'm in.")
                 return
 
-            self.logger.debug("Dispatcher.dispatch: Passed prefix check")
-            # Get first arg for decision making
-            message_content_args = message.content.split()
-            first_arg = message_content_args[0].lstrip(prefix)
+            # Ignore messages without our prefix
+            prefix = context.server_data.get_command_prefix()
+            logger.debug("Expected prefix: %r, message: %r", prefix, context.message.content)
+            if not context.message.content.startswith(prefix):
+                return
 
-            if first_arg == "help":
-                # request for help. check following args for details
-                self.logger.debug("utils.dispatcher.Dispatcher.dispatch: Help command received")
-                handler = None
-                try:
-                    second_arg = message_content_args[1]
-                    handler = self._command_handler_map.get(second_arg.lstrip(prefix))
-                except Exception:
-                    pass
-                if handler:
-                    self.logger.debug("utils.dispatcher.Dispatcher.dispatch: "
-                                      "Dispatching help command to handler")
-                    await handler.help(message)
-                    return
+            context.args = context.message.content.lstrip(prefix).split()
 
-                # if we got here, it's a general help request so print supported commands
-                self.logger.debug("utils.dispatcher.Dispatcher.dispatch: "
-                                  "Handling top-level help command")
-                with opentracing.tracer.start_span("client.send_message", child_of=dispatch_span):
-                    await self.client.send_message(
-                        message.channel,
-                        "Supported commands: %s" % (
-                            ", ".join("!%s" % command for command in self._command_handler_map)
-                        )
-                    )
+            if context.args[0] == "help":
+                await self.dispatch_help(context, parent_span=dispatch_span)
                 return
 
             # Not a help request, handle a real command
-            handler = (self._command_handler_map.get(first_arg) or
-                       self._hidden_command_handler_map.get(first_arg))
-            if handler is None:
-                self.logger.debug("utils.dispatcher.Dispatcher.dispatch: "
+            handler = self._command_handler_map.get(context.args[0])
+
+            if not handler:
+                # Check if it's a hidden command
+                handler = self._hidden_command_handler_map.get(context.args[0])
+
+            if not handler:
+                # Nope, no idea what this command is
+                logger.debug("utils.dispatcher.Dispatcher.dispatch: "
                                   "Can't find handler for command")
                 return
 
-            self.logger.debug("utils.dispatcher.Dispatcher.dispatch: "
+            if not handler.permissions(context):
+                logger.debug("utils.dispatcher.Dispatcher.dispatch: "
+                              "Failed permissions check, ignoring command")
+                return
+
+            logger.debug("utils.dispatcher.Dispatcher.dispatch: "
                               "Dispatching real command to handler")
-            await handler.apply(message)
+            await handler.apply(context)
+
+    async def dispatch_help(self, context, parent_span):
+        """ Dispatch a help command. """
+        with opentracing.tracer.start_span(
+                "Dispatcher.dispatch_help", child_of=parent_span):
+
+            logger.debug("utils.dispatcher.Dispatcher.dispatch_help")
+
+            try:
+                handler = self._command_handler_map.get(context.args[1])
+            except IndexError:
+                handler = None
+
+            if not handler:
+
+                # General help command
+                logger.debug("utils.dispatcher.Dispatcher.dispatch: "
+                              "Handling general help command")
+                await self.client.send_message(
+                    context.message.channel,
+                    "Supported commands: %s" % (
+                        ", ".join("!%s" % command for command in self._command_handler_map)))
+                return
+
+            # Help request for a specific command. Check permissions
+            if not handler.permissions(context):
+                logger.debug("utils.dispatcher.Dispatcher.dispatch: "
+                              "Failed permissions check, ignoring help command")
+                return
+
+            logger.debug("utils.dispatcher.Dispatcher.dispatch: "
+                         "Dispatching help command to handler")
+            await handler.help(context)
+            return

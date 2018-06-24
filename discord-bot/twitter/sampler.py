@@ -14,14 +14,14 @@ class TwitterListSampler(object):
         self.twitter_api_client = twitter_api_client
         self.list_map = {}
 
-    async def _getTwitterListSize(self, list_owner, list_slug):
+    async def _get_twitter_list_size(self, list_owner, list_slug):
         list_data, error_string = await self.twitter_api_client.getListData(list_owner, list_slug)
         if list_data is None:
             return (None, error_string)
 
         return (list_data["member_count"], None)
 
-    def _getWeightedResults(self, list_owner, list_slug, tweet_list):
+    def _get_weighted_results(self, list_owner, list_slug, tweet_list):
         lists_key = (list_owner, list_slug)
         list_data = self.list_map.setdefault(lists_key, {})
         screen_name_weight_map = list_data.setdefault("screen_name_weight", {})
@@ -67,7 +67,7 @@ class TwitterListSampler(object):
 
         return results
 
-    async def _adjustWeights(self, list_owner, list_slug, tweets_shown):
+    async def _adjust_weights(self, list_owner, list_slug, tweets_shown):
         ''' This method adds a constant to all twitter handle weights, to increase the
             chance a user's tweets will be shown again over time.
             The constant is the inverse of the list size, multiplied by the number of
@@ -75,7 +75,7 @@ class TwitterListSampler(object):
         '''
         # k is the constant we will add to all screen_name weights. Avoid div by zero if list is empty.
         # Compute the adjustment constant using the list size.
-        list_size, error_reason = await self._getTwitterListSize(list_owner, list_slug)
+        list_size, error_reason = await self._get_twitter_list_size(list_owner, list_slug)
         if error_reason:
             return error_reason
         list_size = max(list_size, 1)
@@ -111,7 +111,7 @@ class TwitterListSampler(object):
 
         return None
 
-    async def getTweets(self, list_owner, list_slug):
+    async def get_tweets(self, list_owner, list_slug):
         ''' On success, returns tuple where first item is a list of two part tuples like:
                     [(tweet_url, weighted_score), ...]
                 second item is None.
@@ -123,13 +123,13 @@ class TwitterListSampler(object):
             return (None, error_reason)
 
         # Score tweets using known weightings
-        weighted_results = self._getWeightedResults(list_owner, list_slug, tweet_list)
+        weighted_results = self._get_weighted_results(list_owner, list_slug, tweet_list)
 
         # Sample the highest weighted results
         tweet_score_tuples = weighted_results[:self.results_to_return]
 
         # Adjust weightings
-        error_reason = await self._adjustWeights(list_owner, list_slug, tweet_score_tuples)
+        error_reason = await self._adjust_weights(list_owner, list_slug, tweet_score_tuples)
         if error_reason:
             return (None, error_reason)
 

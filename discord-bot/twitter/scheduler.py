@@ -11,12 +11,12 @@ import utils.config
 import utils.misc
 import utils.server
 
-MINIMUM_TWEET_DELAY_INTERVAL = 60 * 60 # 1 hour
-RANDOM_EXTRA_DELAY_INTERVAL = 60 * 30 # 30 minutes
+minimum_tweet_delay_interval = 60 * 60 # 1 hour
+random_extra_delay_interval = 60 * 30 # 30 minutes
 
 def get_delay_time():
     """ Return the time to wait before posting a tweet. """
-    return MINIMUM_TWEET_DELAY_INTERVAL + random.random() * RANDOM_EXTRA_DELAY_INTERVAL
+    return minimum_tweet_delay_interval + random.random() * random_extra_delay_interval
 
 class TwitterScheduler(object):
     """ Class to handle scheduling the posting of Tweets to Discord servers. """
@@ -24,19 +24,19 @@ class TwitterScheduler(object):
         self.logger = logging.getLogger(__name__)
         self.config = utils.config.get()
         self.client = client
-        self.list_sampler = twitter.client.LIST_SAMPLER
+        self.list_sampler = twitter.client.list_sampler
 
     async def run(self, server):
         """ Start sending Tweets to a discord server. """
         try:
             server_data = utils.server.get(server)
-            twitter_list_data = server_data.getTwitterListData()
+            twitter_list_data = server_data.get_twitter_list_data()
 
-            list_owner = twitter_list_data[utils.server.TWITTER_LIST_OWNER_DISPLAY_NAME_KEY]
-            list_slug = twitter_list_data[utils.server.TWITTER_LIST_SLUG_KEY]
+            list_owner = twitter_list_data[utils.server.twitter_list_owner_display_name_key]
+            list_slug = twitter_list_data[utils.server.twitter_list_slug_key]
 
-            target_channel_name = twitter_list_data[utils.server.TWITTER_TARGET_CHANNEL_KEY]
-            target_channel = server_data.getTextChannelFromName(target_channel_name)
+            target_channel_name = twitter_list_data[utils.server.twitter_target_channel_key]
+            target_channel = server_data.get_text_channel_from_name(target_channel_name)
 
             # Repeatedly wait a while, then post a tweet to the chat
             while True:
@@ -47,11 +47,11 @@ class TwitterScheduler(object):
         except Exception as exc:
             self.logger.info("Exception in TwitterScheduler.start for server %r: %r",
                              server.name, exc)
-            utils.misc.logTraceback(self.logger)
+            utils.misc.log_traceback(self.logger)
 
     async def post_tweets_to_chat(self, list_owner, list_slug, target_channel):
         """ Loop forever and post Tweets periodically to a Discord channel. """
-        results, error_reason = await self.list_sampler.getTweets(list_owner, list_slug)
+        results, error_reason = await self.list_sampler.get_tweets(list_owner, list_slug)
         if error_reason:
             self.logger.error("post_tweets_to_chat failed, reason: %r", error_reason)
             return

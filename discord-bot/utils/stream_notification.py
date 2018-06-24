@@ -8,7 +8,7 @@ class StreamNotifications(object):
         self.logger = logging.getLogger(__name__)
         self.client = client
 
-    def isMemberStartingToStream(self, member_before, member_after):
+    def is_member_starting_to_stream(self, member_before, member_after):
         ''' Return True if the member just began streaming, or False otherwise.
         '''
         self.logger.debug('In utils.stream_notification.StreamNotifications.isMemberStartingToStream')
@@ -30,12 +30,12 @@ class StreamNotifications(object):
 
         return True
 
-    async def onMemberUpdate(self, member_before, member_after):
+    async def on_member_update(self, member_before, member_after):
         ''' Call whenever a Member is updated.
         '''
         self.logger.debug('In utils.stream_notification.StreamNotifications.onMemberUpdate')
         # Stream start check
-        if not self.isMemberStartingToStream(member_before, member_after):
+        if not self.is_member_starting_to_stream(member_before, member_after):
             return
 
         # Permissions check
@@ -43,7 +43,7 @@ class StreamNotifications(object):
                           'Permissions check')
         server = member_after.server
         server_data = utils.server.get(server)
-        if not server_data.userHasMemberPermissions(member_after):
+        if not server_data.user_has_member_permissions(member_after):
             return
 
         # Decide whether to advertise the member's stream
@@ -55,9 +55,9 @@ class StreamNotifications(object):
 
         self.logger.debug('utils.stream_notification.StreamNotifications.onMemberUpdate: '
                           'Calling self.advertiseStream')
-        await self.advertiseStream(member_after)
+        await self.advertise_stream(member_after)
 
-    async def advertiseStream(self, member):
+    async def advertise_stream(self, member):
         ''' Advertise a stream in the Discord server of the streaming member.
         '''
         self.logger.debug('In utils.stream_notification.StreamNotifications.advertiseStream')

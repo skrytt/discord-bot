@@ -4,24 +4,23 @@
     - A ServerDataMap class, intended as the access point for ServerData objects.
 '''
 import logging
-import time
 
 import discord
 
 import utils.database
 import utils.member
 
-COMMAND_PREFIX_HASH_KEY = 'command_prefix'
-MEMBER_ROLE_HASH_KEY = 'member_role'
-OFFICER_ROLE_HASH_KEY = 'officer_role'
-NOTIFICATION_CHANNEL_NAME_HASH_KEY = 'notification_channel'
-MEMBER_ASSIGNABLE_ROLE_NAMES_SET_KEY = 'member_assignable_role_names'
+command_prefix_hash_key = 'command_prefix'
+member_role_hash_key = 'member_role'
+officer_role_hash_key = 'officer_role'
+notification_channel_name_hash_key = 'notification_channel'
+member_assignable_role_names_set_key = 'member_assignable_role_names'
 
-TWITTER_LIST_OWNER_DISPLAY_NAME_KEY = 'twitter_list_owner_display_name'
-TWITTER_LIST_SLUG_KEY = 'twitter_list_slug'
-TWITTER_TARGET_CHANNEL_KEY = 'twitter_target_channel'
+twitter_list_owner_display_name_key = 'twitter_list_owner_display_name'
+twitter_list_slug_key = 'twitter_list_slug'
+twitter_target_channel_key = 'twitter_target_channel'
 
-SERVER_DEFAULT_COMMAND_PREFIX = '!'
+server_default_command_prefix = '!'
 
 def get(server):
     """ Returns a ServerData instance for this server. """
@@ -38,6 +37,7 @@ class _ServerDataMap(object):
         self._map = {}
 
     def get(self, server):
+        """ Get data associated with a server. """
         server_data = self._map.setdefault(
             server.id,
             _ServerData(self.database, server))
@@ -57,11 +57,11 @@ class _ServerData(object):
 
     def update(self):
         ''' Ensure data consistency with the database. '''
-        self._hash = self.database.getServerSpecificHashData(self.server.id)
-        self._member_assignable_roles = self.database.getServerSpecificSetMembers(
-            self.server.id, MEMBER_ASSIGNABLE_ROLE_NAMES_SET_KEY)
+        self._hash = self.database.get_server_specific_hash_data(self.server.id)
+        self._member_assignable_roles = self.database.get_server_specific_set_members(
+            self.server.id, member_assignable_role_names_set_key)
 
-    def getMemberObjectFromUser(self, user):
+    def get_member_object_from_user(self, user):
         ''' Given a User object, return a Member object if the user is in
             the server we represent, otherwise return None.
         '''
@@ -74,12 +74,13 @@ class _ServerData(object):
                 return member
         return None
 
-    def userHasMemberPermissions(self, user):
-        member = self.getMemberObjectFromUser(user)
+    def user_has_member_permissions(self, user):
+        """ Return True if the user has the permissions role, False otherwise. """
+        member = self.get_member_object_from_user(user)
         if not member:
             return False
 
-        member_role_name = self.getMemberRole()
+        member_role_name = self.get_member_role()
         if not member_role_name:
             return False
 
@@ -89,12 +90,13 @@ class _ServerData(object):
 
         return False
 
-    def userHasOfficerPermissions(self, user):
-        member = self.getMemberObjectFromUser(user)
+    def user_has_officer_permissions(self, user):
+        """ Return True if the user has the officer role, False otherwise. """
+        member = self.get_member_object_from_user(user)
         if not member:
             return False
 
-        officer_role_name = self.getOfficerRole()
+        officer_role_name = self.get_officer_role()
         if not officer_role_name:
             return False
 
@@ -104,102 +106,97 @@ class _ServerData(object):
 
         return False
 
-    def userIsServerOwner(self, user):
-        ''' Check whether the member has the role 'officers' or 'ex-officers'.
-        '''
+    def user_is_server_owner(self, user):
+        """ Return True if the user is the server owner, False otherwise. """
         if user.id == self.server.owner.id:
             return True
         return False
 
-    def getCommandPrefix(self):
+    def get_command_prefix(self):
+        """ Return the command prefix to be used for commands to the bot. """
         try:
-            return self._hash[COMMAND_PREFIX_HASH_KEY.encode('utf-8')].decode('utf-8')
+            return self._hash[command_prefix_hash_key.encode('utf-8')].decode('utf-8')
         except Exception:
-            return SERVER_DEFAULT_COMMAND_PREFIX
+            return server_default_command_prefix
 
-    def setCommandPrefix(self, prefix):
-        data = {COMMAND_PREFIX_HASH_KEY: prefix}
-        self.database.setServerSpecificHashData(self.server.id, data)
+    def set_command_prefix(self, prefix):
+        """ Set the command prefix to be used for commands to the bot. """
+        data = {command_prefix_hash_key: prefix}
+        self.database.set_server_specific_hash_data(self.server.id, data)
         self.update()
 
-    def getMemberRole(self):
+    def get_member_role(self):
+        """ Return the name of the member permissions role. """
         try:
-            return self._hash.get(MEMBER_ROLE_HASH_KEY.encode('utf-8')).decode('utf-8')
-        except Exception:
-            return None
-
-    def setMemberRole(self, role_name):
-        data = {MEMBER_ROLE_HASH_KEY: role_name}
-        self.database.setServerSpecificHashData(self.server.id, data)
-        self.update()
-
-    def getOfficerRole(self):
-        try:
-            return self._hash.get(OFFICER_ROLE_HASH_KEY.encode('utf-8')).decode('utf-8')
+            return self._hash.get(member_role_hash_key.encode('utf-8')).decode('utf-8')
         except Exception:
             return None
 
-    def setOfficerRole(self, role_name):
-        data = {OFFICER_ROLE_HASH_KEY: role_name}
-        self.database.setServerSpecificHashData(self.server.id, data)
+    def set_member_role(self, role_name):
+        """ Set the name of the member permissions role. """
+        data = {member_role_hash_key: role_name}
+        self.database.set_server_specific_hash_data(self.server.id, data)
         self.update()
 
-    def getNotificationChannelName(self):
+    def get_officer_role(self):
+        """ Return the name of the officer permissions role. """
         try:
-            return self._hash.get(NOTIFICATION_CHANNEL_NAME_HASH_KEY.encode('utf-8')).decode('utf-8')
+            return self._hash.get(officer_role_hash_key.encode('utf-8')).decode('utf-8')
         except Exception:
             return None
 
-    def setNotificationChannelName(self, channel_name):
-        data = {NOTIFICATION_CHANNEL_NAME_HASH_KEY: channel_name}
-        self.database.setServerSpecificHashData(self.server.id, data)
+    def set_officer_role(self, role_name):
+        """ Set the name of the officer permissions role. """
+        data = {officer_role_hash_key: role_name}
+        self.database.set_server_specific_hash_data(self.server.id, data)
         self.update()
 
-    def getTwitterListData(self):
+    def get_notification_channel_name(self):
+        """ Return the name of the channel to put notifications in. """
+        try:
+            return self._hash.get(notification_channel_name_hash_key.encode('utf-8')).decode('utf-8')
+        except Exception:
+            return None
+
+    def set_notification_channel_name(self, channel_name):
+        """ Set the name of the channel to put notifications in. """
+        data = {notification_channel_name_hash_key: channel_name}
+        self.database.set_server_specific_hash_data(self.server.id, data)
+        self.update()
+
+    def get_twitter_list_data(self):
+        """ Get Twitter list configuration data. """
         try:
             data = {
-                TWITTER_LIST_OWNER_DISPLAY_NAME_KEY: self._hash.get(
-                    TWITTER_LIST_OWNER_DISPLAY_NAME_KEY.encode('utf-8')).decode('utf-8'),
-                TWITTER_LIST_SLUG_KEY: self._hash.get(
-                    TWITTER_LIST_SLUG_KEY.encode('utf-8')).decode('utf-8'),
-                TWITTER_TARGET_CHANNEL_KEY: self._hash.get(
-                    TWITTER_TARGET_CHANNEL_KEY.encode('utf-8')).decode('utf-8')
+                twitter_list_owner_display_name_key: self._hash.get(
+                    twitter_list_owner_display_name_key.encode('utf-8')).decode('utf-8'),
+                twitter_list_slug_key: self._hash.get(
+                    twitter_list_slug_key.encode('utf-8')).decode('utf-8'),
+                twitter_target_channel_key: self._hash.get(
+                    twitter_target_channel_key.encode('utf-8')).decode('utf-8')
             }
             return data
         except Exception:
             return None
 
-    def setTwitterListData(self, owner_display_name, slug, target_channel):
+    def set_twitter_list_data(self, owner_display_name, slug, target_channel):
+        """ Set Twitter list configuration data. """
         data = {
-            TWITTER_LIST_OWNER_DISPLAY_NAME_KEY: owner_display_name,
-            TWITTER_LIST_SLUG_KEY: slug,
-            TWITTER_TARGET_CHANNEL_KEY: target_channel
+            twitter_list_owner_display_name_key: owner_display_name,
+            twitter_list_slug_key: slug,
+            twitter_target_channel_key: target_channel
         }
-        self.database.setServerSpecificHashData(self.server.id, data)
+        self.database.set_server_specific_hash_data(self.server.id, data)
         self.update()
 
-    def addMemberAssignableRoleName(self, role_name):
-        self.database.addItemToServerSpecificSet(
-            self.server.id, MEMBER_ASSIGNABLE_ROLE_NAMES_SET_KEY, role_name)
-        self.update()
-
-    def removeMemberAssignableRoleName(self, role_name):
-        self.database.removeItemFromServerSpecificSet(
-        self.server.id, MEMBER_ASSIGNABLE_ROLE_NAMES_SET_KEY, role_name)
-        self.update()
-
-    def getMemberAssignableRoleNames(self):
-        # Convert strings back to Unicode
-        return set((s.decode('utf-8') for s in self.database.getServerSpecificSetMembers(
-            self.server.id, MEMBER_ASSIGNABLE_ROLE_NAMES_SET_KEY)))
-
-    def getRoleFromName(self, role_name):
+    def get_role_from_name(self, role_name):
+        """ Return a server Role with the provided role name. """
         for role in self.server.roles:
             if role.name == role_name:
                 return role
         return None
 
-    def getTextChannelFromName(self, name):
+    def get_text_channel_from_name(self, name):
         ''' Given a text channel name (string), return the channel name.
             Otherwise, return None.
         '''
@@ -207,16 +204,3 @@ class _ServerData(object):
             if channel.name == name and channel.type == discord.ChannelType.text:
                 return channel
         return None
-
-    def addUserToServerAccountSet(self, account_type, user):
-        assert account_type in utils.member.getMemberSettableAccountTypes()
-        self.database.addItemToServerSpecificSet(self.server.id, account_type, user.id)
-        self.update()
-
-    def removeUserFromServerAccountSet(self, account_type, user):
-        assert account_type in utils.member.getMemberSettableAccountTypes()
-        self.database.removeItemFromServerSpecificSet(self.server.id, account_type, user.id)
-        self.update()
-
-    def getAccountsByType(self, account_type):
-        return self.database.getServerSpecificSetMembers(self.server.id, account_type)

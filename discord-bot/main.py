@@ -12,6 +12,7 @@ import jaeger_client
 import opentracing
 
 import dispatcher
+from message_context import MessageContext
 
 import utils.config
 import utils.misc
@@ -33,7 +34,7 @@ except RuntimeError:
 
 # Now that we have a config, we should enforce the configured logging settings for our logging.
 # Leave Discord.py logging at the default level, we're less interested in it
-logging_config = config.getLoggingConfig()
+logging_config = config.get_logging_config()
 if logging_config:
     try:
         logging.config.dictConfig(logging_config)
@@ -45,7 +46,7 @@ if logging_config:
 # Logging config is loaded so start using it
 logger = logging.getLogger(__name__)
 
-discord_config = config.getDiscordConfig()
+discord_config = config.get_discord_config()
 bot_client_id = discord_config["client_id"]
 bot_token = discord_config["token"]
 
@@ -94,44 +95,37 @@ async def on_ready():
 async def on_message(message):
     """ Called whenever a message is received from Discord. """
     # We'll only trace
-    with tracer.start_span('on_message') as span:
+    with tracer.start_span('on_message') as on_message_span:
 
         # Bot loopback protection
         if message.author == bot_client_id:
             return
 
-        span.set_tag("author_name", message.author.name)
-        span.set_tag("channel_type", str(message.channel.type))
-
-        # Not all messages are within a server
-        server = getattr(message, "server", None)
-        if server:
-            span.set_tag("server_name", server.name)
-
-        # Not all channels have names
-        channel_name = getattr(message.channel, "name", None)
-        if channel_name:
-            span.set_tag("channel_name", channel_name)
+        context = MessageContext(message, root_span=on_message_span)
+        on_message_span.set_tag("author_name", str(context.author_name))
+        on_message_span.set_tag("server_name", str(context.message.server.name))
+        on_message_span.set_tag("channel_name", str(context.message.channel.name))
 
         # Dispatch command
-        await dispatcher.dispatch(message, parent_span=span)
+
+        await dispatcher.dispatch(context, parent_span=on_message_span)
 
 
 @discord_client.event
 async def on_member_update(member_before, member_after):
     """ Called when a Member updates their profile. """
-    await stream_notifications.onMemberUpdate(member_before, member_after)
+    await stream_notifications.on_member_update(member_before, member_after)
 
 
 # We are set up and the Discord client hooks are defined.
 # Now run the bot..:
-logger.info("Invite link: %s", utils.misc.getInviteLink(bot_client_id))
+logger.info("Invite link: %s", utils.misc.get_invite_link(bot_client_id))
 try:
     discord_client.run(bot_token)
 
 except Exception as exc:
     logger.error('Handled top level exception: %r', exc)
-    utils.misc.logTraceback(logger)
+    utils.misc.log_traceback(logger)
     raise
 
 finally:

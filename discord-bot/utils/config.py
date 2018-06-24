@@ -6,11 +6,7 @@ import json.decoder
 import logging
 import os
 
-CONFIG_JSON_FILE_ENVVAR = "DISCORD_BOT_CONFIG_JSON_FILE"
-BOT_CLIENT_ID_KEY = "bot_client_id"
-BOT_TOKEN_KEY = "bot_token"
-LOGGING_CONFIG_KEY = "logging"
-DEFAULT_LOG_LEVEL = "INFO"
+config_json_file_envvar = "DISCORD_BOT_CONFIG_JSON_FILE"
 
 def get():
     """ Retrieve a reference to the config object. """
@@ -18,7 +14,7 @@ def get():
         _Config.instance = _Config()
     return _Config.instance
 
-def _getConfigSection(raw_config, section_name, required_keys=None, optional=False):
+def _get_config_section(raw_config, section_name, required_keys=None, optional=False):
     """ Retrieve a dictionary representing a section of the bot configuration. """
     try:
         section_dict = raw_config[section_name]
@@ -53,19 +49,24 @@ class _Config(object):
 
         self.load()
 
-    def getLoggingConfig(self):
+    def get_logging_config(self):
+        """ Returns the "logging" section of the bot configuration. """
         return self._logging
 
-    def getJaegerConfig(self):
+    def get_jaeger_config(self):
+        """ Returns the "jaeger" section of the bot configuration. """
         return self._jaeger
 
-    def getDiscordConfig(self):
+    def get_discord_config(self):
+        """ Returns the "discord" section of the bot configuration. """
         return self._discord
 
-    def getDatabaseConfig(self):
+    def get_database_config(self):
+        """ Returns the "database" section of the bot configuration. """
         return self._database
 
-    def getTwitterConfig(self):
+    def get_twitter_config(self):
+        """ Returns the "twitter" section of the bot configuration. """
         return self._twitter
 
     def load(self):
@@ -76,7 +77,7 @@ class _Config(object):
 
         # Load the raw config from disk
         config_json_file_path = os.environ.get(
-            CONFIG_JSON_FILE_ENVVAR,
+            config_json_file_envvar,
             "/opt/discord-bot/config/config.json")
         try:
             with open(config_json_file_path) as config_file:
@@ -86,7 +87,7 @@ class _Config(object):
             error_message = "No config file found at %r." % (config_json_file_path,)
             self.logger.error(error_message)
             self.logger.error("Use environment variable %r to set the log file location.",
-                CONFIG_JSON_FILE_ENVVAR)
+                config_json_file_envvar)
             raise RuntimeError(error_message)
 
         except json.decoder.JSONDecodeError as exc:
@@ -98,23 +99,23 @@ class _Config(object):
 
         # Set some attributes for use by convenience methods
         try:
-            self._discord = _getConfigSection(
+            self._discord = _get_config_section(
                 self._raw_config, "discord",
                 required_keys=("client_id", "token"))
 
-            self._jaeger = _getConfigSection(
+            self._jaeger = _get_config_section(
                 self._raw_config, "jaeger",
                 optional=True)
 
-            self._database = _getConfigSection(
+            self._database = _get_config_section(
                 self._raw_config, "database",
                 required_keys=("host", "port"))
 
-            self._logging = _getConfigSection(
+            self._logging = _get_config_section(
                 self._raw_config, "logging",
                 optional=True)
 
-            self._twitter = _getConfigSection(
+            self._twitter = _get_config_section(
                 self._raw_config, "twitter",
                 required_keys=("consumer_key", "consumer_secret",
                                "access_token", "access_token_secret"),
