@@ -49,6 +49,11 @@ class TwitterScheduler(object):
         target_channel_name = server_data.get_twitter_data('channel')
         target_channel = server_data.get_text_channel_from_name(target_channel_name)
 
+        if not list_owner or not list_slug or not target_channel:
+            self.logger.warning("Can't post tweets for server %r due to missing config.",
+                    server.name)
+            return
+
         results, error_reason = await self.list_sampler.get_tweets(list_owner, list_slug)
         if error_reason:
             self.logger.error("post_tweets_to_chat failed, reason: %r", error_reason)
