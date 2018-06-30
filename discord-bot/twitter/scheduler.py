@@ -30,12 +30,9 @@ class TwitterScheduler(object):
         """ Start sending Tweets to a discord server. """
         try:
             server_data = utils.server.get(server)
-            twitter_list_data = server_data.get_twitter_list_data()
-
-            list_owner = twitter_list_data[utils.server.twitter_list_owner_display_name_key]
-            list_slug = twitter_list_data[utils.server.twitter_list_slug_key]
-
-            target_channel_name = twitter_list_data[utils.server.twitter_target_channel_key]
+            list_owner = server_data.get_twitter_data('listscreenname')
+            list_slug = server_data.get_twitter_data('listslug')
+            target_channel_name = server_data.get_twitter_data('channel')
             target_channel = server_data.get_text_channel_from_name(target_channel_name)
 
             # Repeatedly wait a while, then post a tweet to the chat

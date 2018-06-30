@@ -58,8 +58,42 @@ class HandlerBase(object):
         raise NotImplementedError
 
     async def help(self, context):
-        """ Override for each implementation of HandlerBase.
-            Should send documentation on supported commands to the channel
-            from which the message was sent.
+        """ Help function requires some variables to be provided by the derived class:
+            - self._subcommand_usage_msg_map: map of subcommand names to usage message strings.
+            - self._basic_usage_msg: a generic usage message.
         """
-        raise NotImplementedError
+        help_text = None
+
+        # Route officer and server admin commands to private messages to avoid confusing others.
+        if self.permission_level == permissions_member:
+            target_channel = context.message.channel
+        else:
+            target_channel = context.message.author
+
+        try:
+            # Account for the fact we tolerate the "help" command being in variable positions
+            # !help cmd subcmd ... | !cmd help subcmd ... | !cmd subcmd help ...
+            filtered_args = [arg for arg in context.args[:3] if arg != "help"]
+            subcommand = filtered_args[1]
+        except IndexError:
+            subcommand = None
+
+        # Some handlers will implement subcommand-level help messages.
+        if subcommand:
+            subcommand_usage_msg_map = getattr(self, "_subcommand_usage_msg_map")
+            if subcommand_usage_msg_map:
+                subcommand_usage_msg = subcommand_usage_msg_map.get(subcommand)
+                if subcommand_usage_msg:
+                    help_text = "Usage: %s" % (subcommand_usage_msg,)
+
+        # Ideally all handler implementations will provide at least a basic usage message.
+        if not help_text:
+            help_text = getattr(self, "_basic_usage_msg")
+
+        # Some people just want to watch the world suffer
+        if not help_text:
+            await self.client.send_message(target_channel,
+                "Sorry, this command does not have a help feature yet!")
+            return
+
+        await self.client.send_message(target_channel, help_text)

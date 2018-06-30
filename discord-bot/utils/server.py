@@ -13,12 +13,9 @@ import utils.member
 command_prefix_hash_key = 'command_prefix'
 member_role_hash_key = 'member_role'
 officer_role_hash_key = 'officer_role'
-notification_channel_name_hash_key = 'notification_channel'
 member_assignable_role_names_set_key = 'member_assignable_role_names'
 
-twitter_list_owner_display_name_key = 'twitter_list_owner_display_name'
-twitter_list_slug_key = 'twitter_list_slug'
-twitter_target_channel_key = 'twitter_target_channel'
+twitch_target_channel_hash_key = 'twitch_target_channel'
 
 server_default_command_prefix = '!'
 
@@ -38,8 +35,11 @@ class _ServerDataMap(object):
 
     def get(self, server):
         """ Get data associated with a server. """
+        server_id = getattr(server, "id")
+        if not server_id:
+            return None
         server_data = self._map.setdefault(
-            server.id,
+            server_id,
             _ServerData(self.database, server))
         return server_data
 
@@ -151,41 +151,39 @@ class _ServerData(object):
         self.database.set_server_specific_hash_data(self.server.id, data)
         self.update()
 
-    def get_notification_channel_name(self):
+    def get_twitch_data(self, key):
         """ Return the name of the channel to put notifications in. """
+        assert key in ('channel',), "Bad key: %r" % (key,)
+        key = "twitch_%s" % (key,)
         try:
-            return self._hash.get(notification_channel_name_hash_key.encode('utf-8')).decode('utf-8')
+            return self._hash.get(key.encode('utf-8')).decode('utf-8')
         except Exception:
             return None
 
-    def set_notification_channel_name(self, channel_name):
-        """ Set the name of the channel to put notifications in. """
-        data = {notification_channel_name_hash_key: channel_name}
+    def set_twitch_data(self, key, value):
+        """ Set Twitch configuration data. """
+        assert key in ('channel',), "Bad key: %r" % (key,)
+        assert value
+        key = 'twitch_%s' % (key,)
+        data = {key: value}
         self.database.set_server_specific_hash_data(self.server.id, data)
         self.update()
 
-    def get_twitter_list_data(self):
+    def get_twitter_data(self, key):
         """ Get Twitter list configuration data. """
+        assert key in ('channel', 'listscreenname', 'listslug'), "Bad key: %r" % (key,)
+        key = "twitter_%s" % (key,)
         try:
-            data = {
-                twitter_list_owner_display_name_key: self._hash.get(
-                    twitter_list_owner_display_name_key.encode('utf-8')).decode('utf-8'),
-                twitter_list_slug_key: self._hash.get(
-                    twitter_list_slug_key.encode('utf-8')).decode('utf-8'),
-                twitter_target_channel_key: self._hash.get(
-                    twitter_target_channel_key.encode('utf-8')).decode('utf-8')
-            }
-            return data
+            return self._hash.get(key.encode('utf-8')).decode('utf-8')
         except Exception:
             return None
 
-    def set_twitter_list_data(self, owner_display_name, slug, target_channel):
-        """ Set Twitter list configuration data. """
-        data = {
-            twitter_list_owner_display_name_key: owner_display_name,
-            twitter_list_slug_key: slug,
-            twitter_target_channel_key: target_channel
-        }
+    def set_twitter_data(self, key, value):
+        """ Set Twitter configuration data. """
+        assert key in ('channel', 'listscreenname', 'listslug'), "Bad key: %r" % (key,)
+        assert value
+        key = 'twitter_%s' % (key,)
+        data = {key: value}
         self.database.set_server_specific_hash_data(self.server.id, data)
         self.update()
 

@@ -94,21 +94,19 @@ async def on_ready():
 @discord_client.event
 async def on_message(message):
     """ Called whenever a message is received from Discord. """
-    # We'll only trace
     with tracer.start_span('on_message') as on_message_span:
-
         # Bot loopback protection
         if message.author == bot_client_id:
             return
 
+        # Create contexts for request processing and tracing
         context = MessageContext(message, root_span=on_message_span)
         on_message_span.set_tag("author_name", str(context.author_name))
         on_message_span.set_tag("server_name", str(context.message.server.name))
         on_message_span.set_tag("channel_name", str(context.message.channel.name))
 
         # Dispatch command
-
-        await dispatcher.dispatch(context, parent_span=on_message_span)
+        await dispatcher.dispatch(context, on_message_span)
 
 
 @discord_client.event

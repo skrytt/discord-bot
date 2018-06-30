@@ -33,7 +33,6 @@ class StreamNotifications(object):
     async def on_member_update(self, member_before, member_after):
         ''' Call whenever a Member is updated.
         '''
-        self.logger.debug('In utils.stream_notification.StreamNotifications.onMemberUpdate')
         # Stream start check
         if not self.is_member_starting_to_stream(member_before, member_after):
             return
@@ -62,7 +61,7 @@ class StreamNotifications(object):
         '''
         self.logger.debug('In utils.stream_notification.StreamNotifications.advertiseStream')
         server_data = utils.server.get(member.server)
-        notification_channel_name = server_data.getNotificationChannelName()
+        notification_channel_name = server_data.get_twitch_data("channel")
         notification_channel = server_data.getTextChannelFromName(notification_channel_name)
         if not notification_channel:
             return None
