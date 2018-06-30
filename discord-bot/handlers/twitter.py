@@ -5,7 +5,7 @@
 import discord
 
 from handlers import handler_base
-from twitter.client import TwitterApiClient
+from twitter.client import TwitterApiClient, getTwitterListUrl
 from twitter.sampler import TwitterListSampler
 
 class TwitterHandler(handler_base.HandlerBase):
@@ -19,10 +19,19 @@ class TwitterHandler(handler_base.HandlerBase):
         self._list_sampler = TwitterListSampler(self._api_client)
 
         self._subcommand_usage_msg_map = {
-            "list": "`!twitter list (add|remove) <screen_name>`",
+            "list": [
+                "`!twitter list (add|remove) <screen_name>`",
+                "`!twitter list url`"
+            ],
             "lasttweet": '`!twitter lasttweet [screen_name]`'
         }
-        self._basic_usage_msg = 'Usage:\n' + '\n'.join(self._subcommand_usage_msg_map.values())
+        basic_usage_msg_list = []
+        for item in self._subcommand_usage_msg_map.values():
+            if isinstance(item, str):
+                basic_usage_msg_list.append(item)
+            elif isinstance(item, list):
+                basic_usage_msg_list.extend(item)
+        self._basic_usage_msg = 'Usage:\n' + '\n'.join(basic_usage_msg_list)
 
     async def apply(self, context):
         # Gather parameters
@@ -91,26 +100,33 @@ class TwitterHandler(handler_base.HandlerBase):
 
             # !twitter list add <screen_name>
             # !twitter list remove <screen_name>
+            # !twitter list url
             elif args[1] == 'list':
                 try:
-                    action = args[2] # "add", "remove"
+                    action = args[2] # "add", "remove", "url"
                 except IndexError:
                     action = None
 
-                if action not in ("add", "remove"):
+                if action not in ("add", "remove", "url"):
                     await self.help(context)
                     return
 
+                # All of these commands will need to know the list owner screen name and slug
                 list_owner = context.server_data.get_twitter_data("listscreenname")
                 list_slug = context.server_data.get_twitter_data("listslug")
                 if not list_owner or not list_slug:
                     self.logger.error("Could not get Twitter list data from database!")
                     await self.client.send_message(
                         context.message.channel,
-                        "There was a database lookup error! Blame the owner!")
+                        "There was a database lookup error! "
+                        "The server admin needs to set the data.")
                     return
 
-                if action == "add":
+                if action == "url":
+                    url = getTwitterListUrl(list_owner, list_slug)
+                    await self.client.send_message(context.message.channel, url)
+
+                elif action == "add":
                     if len(args) != 4:
                         await self.help(context)
                         return

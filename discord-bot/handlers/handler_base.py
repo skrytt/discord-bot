@@ -83,8 +83,10 @@ class HandlerBase(object):
             subcommand_usage_msg_map = getattr(self, "_subcommand_usage_msg_map")
             if subcommand_usage_msg_map:
                 subcommand_usage_msg = subcommand_usage_msg_map.get(subcommand)
-                if subcommand_usage_msg:
+                if isinstance(subcommand_usage_msg, str):
                     help_text = "Usage: %s" % (subcommand_usage_msg,)
+                elif isinstance(subcommand_usage_msg, list):
+                    help_text = "Usage: \n%s" % ('\n'.join(subcommand_usage_msg),)
 
         # Ideally all handler implementations will provide at least a basic usage message.
         if not help_text:

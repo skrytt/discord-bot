@@ -56,6 +56,9 @@ def _make_signature(logger, method, base_url, request_params, oauth_header_param
 
     return signature
 
+def getTwitterListUrl(list_screen_name, list_slug):
+    return "https://twitter.com/%s/lists/%s" % (list_screen_name, list_slug)
+
 class TwitterApiClient(object):
     ''' This class represents a client interface to make Twitter requests.
         It is able to authenticate with Twitter's application-only auth flow.
