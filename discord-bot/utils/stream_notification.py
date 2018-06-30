@@ -49,7 +49,7 @@ class StreamNotifications(object):
         self.logger.debug('utils.stream_notification.StreamNotifications.onMemberUpdate: '
                           'Should advertise stream check')
         member_data = server_data.member_data_map.get(member_after)
-        if not member_data.shouldAdvertiseStream():
+        if not member_data.should_advertise_stream():
             return
 
         self.logger.debug('utils.stream_notification.StreamNotifications.onMemberUpdate: '
@@ -62,7 +62,7 @@ class StreamNotifications(object):
         self.logger.debug('In utils.stream_notification.StreamNotifications.advertiseStream')
         server_data = utils.server.get(member.server)
         notification_channel_name = server_data.get_twitch_data("channel")
-        notification_channel = server_data.getTextChannelFromName(notification_channel_name)
+        notification_channel = server_data.get_text_channel_from_name(notification_channel_name)
         if not notification_channel:
             return None
 
@@ -76,7 +76,7 @@ class StreamNotifications(object):
                           'Updating last stream notify time')
         server_data = utils.server.get(member.server)
         member_data = server_data.member_data_map.get(member)
-        member_data.updateLastStreamNotifyTime()
+        member_data.update_last_stream_notify_time()
 
         # Now advertise in the configured channel
         self.logger.debug('utils.stream_notification.StreamNotifications.advertiseStream: '
