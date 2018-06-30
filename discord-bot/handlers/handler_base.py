@@ -80,7 +80,7 @@ class HandlerBase(object):
 
         # Some handlers will implement subcommand-level help messages.
         if subcommand:
-            subcommand_usage_msg_map = getattr(self, "_subcommand_usage_msg_map")
+            subcommand_usage_msg_map = getattr(self, "_subcommand_usage_msg_map", None)
             if subcommand_usage_msg_map:
                 subcommand_usage_msg = subcommand_usage_msg_map.get(subcommand)
                 if isinstance(subcommand_usage_msg, str):
@@ -90,7 +90,7 @@ class HandlerBase(object):
 
         # Ideally all handler implementations will provide at least a basic usage message.
         if not help_text:
-            help_text = getattr(self, "_basic_usage_msg")
+            help_text = getattr(self, "_basic_usage_msg", None)
 
         # Some people just want to watch the world suffer
         if not help_text:

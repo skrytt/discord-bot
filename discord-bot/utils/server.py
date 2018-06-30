@@ -35,7 +35,7 @@ class _ServerDataMap(object):
 
     def get(self, server):
         """ Get data associated with a server. """
-        server_id = getattr(server, "id")
+        server_id = getattr(server, "id", None)
         if not server_id:
             return None
         server_data = self._map.setdefault(
