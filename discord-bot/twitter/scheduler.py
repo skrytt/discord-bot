@@ -28,26 +28,27 @@ class TwitterScheduler(object):
 
     async def run(self, server):
         """ Start sending Tweets to a discord server. """
+        self.logger.info("TwitterScheduler.run started for server %r", server.name)
         try:
-            server_data = utils.server.get(server)
-            list_owner = server_data.get_twitter_data('listscreenname')
-            list_slug = server_data.get_twitter_data('listslug')
-            target_channel_name = server_data.get_twitter_data('channel')
-            target_channel = server_data.get_text_channel_from_name(target_channel_name)
-
             # Repeatedly wait a while, then post a tweet to the chat
             while True:
                 await asyncio.sleep(get_delay_time())
                 self.logger.debug("About to call post_tweets_to_chat for server %r", server.name)
-                await self.post_tweets_to_chat(list_owner, list_slug, target_channel)
+                await self.post_tweets_to_chat(server)
 
         except Exception as exc:
             self.logger.info("Exception in TwitterScheduler.start for server %r: %r",
                              server.name, exc)
             utils.misc.log_traceback(self.logger)
 
-    async def post_tweets_to_chat(self, list_owner, list_slug, target_channel):
+    async def post_tweets_to_chat(self, server):
         """ Loop forever and post Tweets periodically to a Discord channel. """
+        server_data = utils.server.get(server)
+        list_owner = server_data.get_twitter_data('listscreenname')
+        list_slug = server_data.get_twitter_data('listslug')
+        target_channel_name = server_data.get_twitter_data('channel')
+        target_channel = server_data.get_text_channel_from_name(target_channel_name)
+
         results, error_reason = await self.list_sampler.get_tweets(list_owner, list_slug)
         if error_reason:
             self.logger.error("post_tweets_to_chat failed, reason: %r", error_reason)
