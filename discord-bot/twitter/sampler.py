@@ -117,7 +117,7 @@ class TwitterListSampler(object):
                 second item is None.
             On failure, returns None instead of the list and the second item is the error reason.
         '''
-        tweet_list, error_reason = await self.twitter_api_client.getTweetsFromList(
+        tweet_list, error_reason = await self.twitter_api_client.get_tweets_from_list(
                 list_owner, list_slug, max_count=self.max_tweets_to_consider)
         if error_reason:
             return (None, error_reason)
