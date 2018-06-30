@@ -51,13 +51,16 @@ bot_client_id = discord_config["client_id"]
 bot_token = discord_config["token"]
 
 tracer = None
-try:
-    jaeger_config = config.getJaegerConfig()
-    jaeger_config_obj = jaeger_client.Config(jaeger_config)
-    tracer = jaeger_config_obj.initialize_tracer()
-except (ValueError, AttributeError) as exc:
-    logger.error("Got error while creating jaeger_client.Config: %r", exc)
-    logger.info("Using Opentracing no-op Tracer instead.")
+jaeger_config = config.get_jaeger_config()
+if jaeger_config:
+    try:
+        jaeger_config_obj = jaeger_client.Config(jaeger_config)
+        tracer = jaeger_config_obj.initialize_tracer()
+    except (ValueError, AttributeError) as exc:
+        logger.error("Got error while creating jaeger_client.Config: %r", exc)
+
+if not tracer:
+    logger.info("Using Opentracing no-op Tracer")
     tracer = opentracing.Tracer()
 
 # Initialize our Twitter API interface

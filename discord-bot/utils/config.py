@@ -103,13 +103,13 @@ class _Config(object):
                 self._raw_config, "discord",
                 required_keys=("client_id", "token"))
 
-            self._jaeger = _get_config_section(
-                self._raw_config, "jaeger",
-                optional=True)
-
             self._database = _get_config_section(
                 self._raw_config, "database",
                 required_keys=("host", "port"))
+
+            self._jaeger = _get_config_section(
+                self._raw_config, "jaeger",
+                optional=True)
 
             self._logging = _get_config_section(
                 self._raw_config, "logging",

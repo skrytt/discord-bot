@@ -25,9 +25,15 @@ class TwitterScheduler(object):
         self.config = utils.config.get()
         self.client = client
         self.list_sampler = twitter.client.list_sampler
+        self.active_scheduler_server_ids = set()
 
     async def run(self, server):
         """ Start sending Tweets to a discord server. """
+        # If we're already sending tweets for this server, don't start a second loop
+        if server.id in self.active_scheduler_server_ids:
+            return
+        self.active_scheduler_server_ids.add(server.id)
+
         self.logger.info("TwitterScheduler.run started for server %r", server.name)
         try:
             # Repeatedly wait a while, then post a tweet to the chat
@@ -40,6 +46,9 @@ class TwitterScheduler(object):
             self.logger.info("Exception in TwitterScheduler.start for server %r: %r",
                              server.name, exc)
             utils.misc.log_traceback(self.logger)
+
+        finally:
+            self.active_scheduler_server_ids.remove(server.id)
 
     async def post_tweets_to_chat(self, server):
         """ Loop forever and post Tweets periodically to a Discord channel. """
