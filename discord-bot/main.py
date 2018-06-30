@@ -108,7 +108,7 @@ async def on_message(message):
     """ Called whenever a message is received from Discord. """
     with tracer.start_span('on_message') as on_message_span:
         # Bot loopback protection
-        if message.author == bot_client_id:
+        if message.author.id == bot_client_id:
             return
 
         # Create contexts for request processing and tracing
