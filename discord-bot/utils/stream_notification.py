@@ -1,6 +1,7 @@
 """ Utilities to notify Discord chatrooms when members begin streaming. """
 import logging
 
+import utils.member
 import utils.server
 
 class StreamNotifications(object):
@@ -48,7 +49,7 @@ class StreamNotifications(object):
         # Decide whether to advertise the member's stream
         self.logger.debug('utils.stream_notification.StreamNotifications.onMemberUpdate: '
                           'Should advertise stream check')
-        member_data = server_data.member_data_map.get(member_after)
+        member_data = utils.member.get(member_after)
         if not member_data.should_advertise_stream():
             return
 
@@ -74,8 +75,7 @@ class StreamNotifications(object):
         # waiting for the advert message to be successfully sent
         self.logger.debug('utils.stream_notification.StreamNotifications.advertiseStream: '
                           'Updating last stream notify time')
-        server_data = utils.server.get(member.server)
-        member_data = server_data.member_data_map.get(member)
+        member_data = utils.member.get(member)
         member_data.update_last_stream_notify_time()
 
         # Now advertise in the configured channel
