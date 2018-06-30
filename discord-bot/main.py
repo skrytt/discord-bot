@@ -38,12 +38,15 @@ logging_config = config.get_logging_config()
 if logging_config:
     try:
         logging.config.dictConfig(logging_config)
+        logging.info("Using the provided logging module config")
     except (ValueError, TypeError, AttributeError, ImportError) as exc:
         logging.error("Error applying logging config: %r", exc)
         logging.info('Not proceeding without logging configuration, exiting.')
         sys.exit(1)
+else:
+    logging.warning("No logging config provided, using logging module defaults.")
 
-# Logging config is loaded so start using it
+# Logging config done
 logger = logging.getLogger(__name__)
 
 discord_config = config.get_discord_config()
@@ -63,17 +66,22 @@ if not tracer:
     logger.info("Using Opentracing no-op Tracer")
     tracer = opentracing.Tracer()
 
-# Initialize our Twitter API interface
-twitter.client.initialize()
-
 # Client: The interface to Discord's API
 discord_client = discord.Client()
+
+# Only instantiate if there is a Twitter config provided
+if config.get_twitter_config():
+    # Twitter API interface
+    twitter.client.initialize()
+    # Twitter scheduler: periodically tries to send Tweets to channels
+    twitter_scheduler = twitter.scheduler.TwitterScheduler(discord_client)
+    logger.info("Using the provided Twitter config")
+else:
+    logger.warning("No usable Twitter config, so Twitter functionality will not be available.")
 
 # Dispatcher: knows how to route commands to the objects which will handle them
 dispatcher = dispatcher.Dispatcher(discord_client)
 
-# Twitter scheduler: periodically tries to send Tweets to channels
-twitter_scheduler = twitter.scheduler.TwitterScheduler(discord_client)
 
 # Stream notifications: reacts to Twitch streams starting and notifies Discord users
 stream_notifications = utils.stream_notification.StreamNotifications(discord_client)
@@ -82,16 +90,17 @@ stream_notifications = utils.stream_notification.StreamNotifications(discord_cli
 @discord_client.event
 async def on_ready():
     """ Called once the bot is logged into Discord. """
-    logger.info('Logged in as user with name %r and ID %r',
+    logger.info('Discord client has logged into Discord as user %r, ID %r',
                 discord_client.user.name, discord_client.user.id)
 
     # Schedule Twitter stuffs
     for server in discord_client.servers:
-        logger.info('Joined server %r', server.name)
+        logger.info('Discord client has joined the server %r', server.name)
 
-        # Create asyncio tasks to run the Twitter scheduler for each server
-        asyncio.get_event_loop().call_soon(
-            asyncio.ensure_future(twitter_scheduler.run(server)))
+        if twitter_scheduler:
+            # Create asyncio tasks to run the Twitter scheduler for each server
+            asyncio.get_event_loop().call_soon(
+                asyncio.ensure_future(twitter_scheduler.run(server)))
 
 
 @discord_client.event
@@ -120,7 +129,8 @@ async def on_member_update(member_before, member_after):
 
 # We are set up and the Discord client hooks are defined.
 # Now run the bot..:
-logger.info("Invite link: %s", utils.misc.get_invite_link(bot_client_id))
+logger.info("Browse to this URL to invite the bot to your server: %s",
+        utils.misc.get_invite_link(bot_client_id))
 try:
     discord_client.run(bot_token)
 

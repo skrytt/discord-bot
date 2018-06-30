@@ -26,7 +26,10 @@ class Dispatcher(object):
         self._hidden_command_handler_map = {}
 
         self.register_handler(ServerAdminHandler(self, client))
-        self.register_handler(TwitterHandler(self, client))
+
+        # Only instantiate the Twitter handler if Twitter is configured
+        if self.config.get_twitter_config():
+            self.register_handler(TwitterHandler(self, client))
 
     def register_handler(self, handler):
         """ Map an iterable of commands to a handler. """
