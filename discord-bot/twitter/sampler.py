@@ -15,7 +15,7 @@ class TwitterListSampler(object):
         self.list_map = {}
 
     async def _get_twitter_list_size(self, list_owner, list_slug):
-        list_data, error_string = await self.twitter_api_client.getListData(list_owner, list_slug)
+        list_data, error_string = await self.twitter_api_client.get_list_data(list_owner, list_slug)
         if list_data is None:
             return (None, error_string)
 
@@ -27,7 +27,7 @@ class TwitterListSampler(object):
         screen_name_weight_map = list_data.setdefault("screen_name_weight", {})
         screen_name_last_tweet_id_map = list_data.setdefault("screen_name_last_tweet_id", {})
 
-        self.logger.debug("TwitterListSampler._getWeightedResults: Number of tweets received from"
+        self.logger.debug("TwitterListSampler._get_weighted_results: Number of tweets received from"
                 " Twitter API: %d", len(tweet_list))
 
         # results_map maps screen names to two-item tuples of the form: (tweet_data, weighted_score).
@@ -54,10 +54,10 @@ class TwitterListSampler(object):
                     results_map[screen_name] = (tweet_data, weighted_score)
 
             except KeyError:
-                self.logger.warning("TwitterListSampler._getWeightedResults: Bad tweet data from"
+                self.logger.warning("TwitterListSampler._get_weighted_results: Bad tweet data from"
                         " Twitter API, missing id field: %r", tweet_data)
 
-        self.logger.debug("TwitterListSampler._getWeightedResults: results_map: %r",
+        self.logger.debug("TwitterListSampler._get_weighted_results: results_map: %r",
                           results_map.keys())
 
         # Sort results by weight and return all of them
