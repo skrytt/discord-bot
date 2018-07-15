@@ -11,12 +11,8 @@ import utils.config
 import utils.misc
 import utils.server
 
-minimum_tweet_delay_interval = 60 * 60 # 1 hour
-random_extra_delay_interval = 60 * 30 # 30 minutes
-
-def get_delay_time():
-    """ Return the time to wait before posting a tweet. """
-    return minimum_tweet_delay_interval + random.random() * random_extra_delay_interval
+minimum_delay_time = 4 * 60 * 60 # 4 hours
+random_extra_delay_time = 2 * 60 * 60 # 2 hours
 
 class TwitterScheduler(object):
     """ Class to handle scheduling the posting of Tweets to Discord servers. """
@@ -35,20 +31,27 @@ class TwitterScheduler(object):
         self.active_scheduler_server_ids.add(server.id)
 
         self.logger.info("TwitterScheduler.run started for server %r", server.name)
-        try:
-            # Repeatedly wait a while, then post a tweet to the chat
-            while True:
-                await asyncio.sleep(get_delay_time())
+        while True:
+            try:
+                # Repeatedly wait a while, then post a tweet to the chat
+                delay_time = minimum_delay_time + random.random() * random_extra_delay_time
+                await asyncio.sleep(delay_time)
+
                 self.logger.debug("About to call post_tweets_to_chat for server %r", server.name)
                 await self.post_tweets_to_chat(server)
 
-        except Exception as exc:
-            self.logger.info("Exception in TwitterScheduler.start for server %r: %r",
-                             server.name, exc)
-            utils.misc.log_traceback(self.logger)
+            # The only scenario we should abort is when asyncio cancels us
+            except asyncio.CancelledError:
+                self.logger.debug("Cancelling Tweet scheduler for server %r", server.name)
+                self.active_scheduler_server_ids.remove(server.id)
+                break
 
-        finally:
-            self.active_scheduler_server_ids.remove(server.id)
+            except Exception as exc:
+                # Suppress, log the traceback and then continue looping
+                self.logger.info("Exception in TwitterScheduler.start for server %r: %r",
+                                 server.name, exc)
+                utils.misc.log_traceback(self.logger)
+
 
     async def post_tweets_to_chat(self, server):
         """ Loop forever and post Tweets periodically to a Discord channel. """
@@ -65,7 +68,7 @@ class TwitterScheduler(object):
 
         results, error_reason = await self.list_sampler.get_tweets(list_owner, list_slug)
         if error_reason:
-            self.logger.error("post_tweets_to_chat failed, reason: %r", error_reason)
+            self.logger.error("get_tweets failed, reason: %r", error_reason)
             return
 
         for tweet_url, _ in results:

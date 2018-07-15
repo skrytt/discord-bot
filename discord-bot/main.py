@@ -98,7 +98,8 @@ async def on_ready():
         logger.info('Discord client has joined the server %r', server.name)
 
         if twitter_scheduler:
-            # Create asyncio tasks to run the Twitter scheduler for each server
+            # Create asyncio tasks to run the Twitter scheduler for each server that
+            # doesn't already have one running
             asyncio.get_event_loop().call_soon(
                 asyncio.ensure_future(twitter_scheduler.run(server)))
 
