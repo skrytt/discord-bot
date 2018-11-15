@@ -13,7 +13,7 @@ class HandlerBase(object):
     """ Base class for command handlers. """
     commands = []  # List of commands which the dispatcher shall register to be
                    # handled by this object
-    permission_level = permissions_member
+    permission_level = permissions_owner
 
     def __init__(self, dispatcher, client):
         self.dispatcher = dispatcher

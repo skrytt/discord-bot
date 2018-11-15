@@ -11,7 +11,9 @@ from twitter.sampler import TwitterListSampler
 class TwitterHandler(handler_base.HandlerBase):
     """ Provides commands for members to interact with Twitter features of the bot. """
     commands = ['twitter']
-    permissions_level = handler_base.permissions_member
+    # Limit to officer permissions because the bot commands can mutate state on a
+    # linked Twitter account and this could easily be abused
+    permissions_level = handler_base.permissions_officer
 
     def __init__(self, *args, **kwargs):
         super(TwitterHandler, self).__init__(*args, **kwargs)
