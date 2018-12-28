@@ -115,7 +115,11 @@ async def on_message(message):
         # Create contexts for request processing and tracing
         context = MessageContext(message, root_span=on_message_span)
         on_message_span.set_tag("author_name", str(context.author_name))
-        on_message_span.set_tag("server_name", str(context.message.server.name))
+        message_server = context.message.server
+        if message_server is not None:
+            on_message_span.set_tag("server_name", str(message_server.name))
+        else:
+            on_message_span.set_tag("server_name", str(None))
         on_message_span.set_tag("channel_name", str(context.message.channel.name))
 
         # Dispatch command
