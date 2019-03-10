@@ -67,7 +67,7 @@ class StreamNotifications(object):
         if not notification_channel:
             return None
 
-        mention_name = member.mention
+        member_name = getattr(member, 'nick', member.name)
         stream_name = member.game.name
         stream_url = member.game.url
 
@@ -84,7 +84,7 @@ class StreamNotifications(object):
         await self.client.send_message(
             notification_channel,
             '\n'.join([
-                '%s is streaming **%s**:' % (mention_name, stream_name),
+                '%s is streaming **%s**:' % (member_name, stream_name),
                 stream_url
             ])
         )
