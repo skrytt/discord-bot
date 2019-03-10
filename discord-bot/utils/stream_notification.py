@@ -67,7 +67,7 @@ class StreamNotifications(object):
         if not notification_channel:
             return None
 
-        member_name = getattr(member, 'nick', member.name)
+        member_name = member.nick or member.name
         stream_name = member.game.name
         stream_url = member.game.url
 

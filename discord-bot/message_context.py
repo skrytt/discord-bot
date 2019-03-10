@@ -9,7 +9,9 @@ class MessageContext(object):
         self.message = message
         self.root_span = root_span
         self.server_data = utils.server.get(message.server)
-        self.author_name = getattr(message.author, 'nick', message.author.name)
+        self.author_name = getattr(message.author, 'nick', None)
+        if not self.author_name:
+            self.author_name = message.author.name
 
         # Properties that are set later
         self.args = None
