@@ -50,7 +50,7 @@ class Dispatcher(object):
             if not context.message.server:
                 await self.client.send_message(
                         context.message.channel,
-                        "Please use any from a Discord server text channel that I'm in.")
+                        "Please issue commands in the Discord server they're meant for!")
                 return
 
             # Ignore messages without our prefix
