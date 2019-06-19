@@ -1,4 +1,5 @@
 """ Utilities to notify Discord chatrooms when members begin streaming. """
+import discord
 import logging
 
 import utils.member
