@@ -6,10 +6,10 @@ import opentracing
 
 import utils.config
 import utils.database
-import utils.server
+import utils.guild
 
 # Command handlers
-from handlers.server_admin import ServerAdminHandler
+from handlers.guild_admin import GuildAdminHandler
 from handlers.twitter import TwitterHandler
 
 class Dispatcher(object):
@@ -25,7 +25,7 @@ class Dispatcher(object):
         self._command_handler_map = {}
         self._hidden_command_handler_map = {}
 
-        self.register_handler(ServerAdminHandler(self, client))
+        self.register_handler(GuildAdminHandler(self, client))
 
         # Only instantiate the Twitter handler if Twitter is configured
         if self.config.get_twitter_config():
@@ -46,15 +46,14 @@ class Dispatcher(object):
         with opentracing.tracer.start_span(
                 "Dispatcher.dispatch", child_of=parent_span) as dispatch_span:
 
-            # Ignore messages outside of servers.
-            if not context.message.server:
-                await self.client.send_message(
-                        context.message.channel,
-                        "Please issue commands in the Discord server they're meant for!")
+            # Ignore messages outside of guilds.
+            if not context.message.guild:
+                await context.message.channel.send(
+                        "Please issue commands in the Discord guild they're meant for!")
                 return
 
             # Ignore messages without our prefix
-            prefix = context.server_data.get_command_prefix()
+            prefix = context.guild_data.get_command_prefix()
             if not context.message.content.startswith(prefix):
                 return
 
@@ -114,11 +113,10 @@ class Dispatcher(object):
                           "Handling general help command")
 
             # If the user lacks permissions, don't respond
-            if not context.server_data.user_has_member_permissions(context.message.author):
+            if not context.guild_data.user_has_member_permissions(context.message.author):
                 return
 
-            await self.client.send_message(
-                context.message.channel,
-                "Supported commands (in servers only): %s" % (
+            await context.message.channel.send(
+                "Supported commands (in guilds only): %s" % (
                     ", ".join("`!%s`" % command for command in self._command_handler_map)))
             return

@@ -2,7 +2,7 @@
 import logging
 
 import utils.member
-import utils.server
+import utils.guild
 
 class StreamNotifications(object):
     def __init__(self, client):
@@ -14,22 +14,19 @@ class StreamNotifications(object):
         '''
         self.logger.debug('In utils.stream_notification.StreamNotifications.isMemberStartingToStream')
         try:
-            new_game_type = member_after.game.type
+            is_streaming = any((isinstance(x, discord.Streaming) for x in member_after.activities))
         except Exception:
             # Not playing a game
             return False
 
-        old_game_type = None
+        was_streaming = False
         try:
-            old_game_type = member_before.game.type
+            was_streaming = any((isinstance(x, discord.Streaming) for x in member_before.activities))
         except Exception:
             pass
-        # Detect when a member's state changes from non-streaming to streaming
-        # 1 is the Discord.py type ID for "Streaming"
-        if old_game_type == new_game_type or new_game_type != 1:
-            return False
 
-        return True
+        # Detect when a member's state changes from non-streaming to streaming
+        return was_streaming == False and is_streaming == True
 
     async def on_member_update(self, member_before, member_after):
         ''' Call whenever a Member is updated.
@@ -41,9 +38,9 @@ class StreamNotifications(object):
         # Permissions check
         self.logger.debug('utils.stream_notification.StreamNotifications.onMemberUpdate: '
                           'Permissions check')
-        server = member_after.server
-        server_data = utils.server.get(server)
-        if not server_data.user_has_member_permissions(member_after):
+        guild = member_after.guild
+        guild_data = utils.guild.get(guild)
+        if not guild_data.user_has_member_permissions(member_after):
             return
 
         # Decide whether to advertise the member's stream
@@ -58,18 +55,30 @@ class StreamNotifications(object):
         await self.advertise_stream(member_after)
 
     async def advertise_stream(self, member):
-        ''' Advertise a stream in the Discord server of the streaming member.
+        ''' Advertise a stream in the Discord guild of the streaming member.
         '''
         self.logger.debug('In utils.stream_notification.StreamNotifications.advertiseStream')
-        server_data = utils.server.get(member.server)
-        notification_channel_name = server_data.get_twitch_data("channel")
-        notification_channel = server_data.get_text_channel_from_name(notification_channel_name)
+        guild_data = utils.guild.get(member.guild)
+        notification_channel_name = guild_data.get_twitch_data("channel")
+        notification_channel = guild_data.get_text_channel_from_name(notification_channel_name)
         if not notification_channel:
             return None
 
         member_name = member.nick or member.name
-        stream_name = member.game.name
-        stream_url = member.game.url
+
+        stream_name = None
+        stream_url = None
+        for x in member.activities:
+            if isinstance(x, discord.Streaming):
+                stream_name = x.name
+                stream_url = x.url
+                break
+
+        # Abort early if we couldn't get the stream data
+        if not stream_url:
+            self.logger.debug('utils.stream_notification.StreamNotifications.advertiseStream: '
+                              'aborting early: could not detect stream URL')
+            return
 
         # Update timestamp first to minimise chance of race conditions while
         # waiting for the advert message to be successfully sent
@@ -81,8 +90,7 @@ class StreamNotifications(object):
         # Now advertise in the configured channel
         self.logger.debug('utils.stream_notification.StreamNotifications.advertiseStream: '
                           'Sending stream advert message')
-        await self.client.send_message(
-            notification_channel,
+        await notification_channel.send(
             '\n'.join([
                 '%s is streaming **%s**:' % (member_name, stream_name),
                 stream_url

@@ -3,7 +3,7 @@
 import logging
 
 import utils.config
-import utils.server
+import utils.guild
 
 permissions_member = 'member'
 permissions_officer = 'officer'
@@ -31,21 +31,21 @@ class HandlerBase(object):
         """ Return True if the user has permission to perform this action,
             False otherwise.
         """
-        # This bot's commands are usable in servers only.
-        if not context.server_data:
+        # This bot's commands are usable in guilds only.
+        if not context.guild_data:
             return False
 
         # Perform the appropriate permission check based on the value of self.permission_level.
         if self.permission_level == permissions_member:
-            if context.server_data.user_has_member_permissions(context.message.author):
+            if context.guild_data.user_has_member_permissions(context.message.author):
                 return True
 
         elif self.permission_level == permissions_officer:
-            if context.server_data.user_has_officer_permissions(context.message.author):
+            if context.guild_data.user_has_officer_permissions(context.message.author):
                 return True
 
         elif self.permission_level == permissions_owner:
-            if context.server_data.user_is_server_owner(context.message.author):
+            if context.guild_data.user_is_guild_owner(context.message.author):
                 return True
 
         # Otherwise: refuse permissions.
@@ -64,7 +64,7 @@ class HandlerBase(object):
         """
         help_text = None
 
-        # Route officer and server admin commands to private messages to avoid confusing others.
+        # Route officer and guild admin commands to private messages to avoid confusing others.
         if self.permission_level == permissions_member:
             target_channel = context.message.channel
         else:
@@ -94,8 +94,8 @@ class HandlerBase(object):
 
         # Some people just want to watch the world suffer
         if not help_text:
-            await self.client.send_message(target_channel,
+            await target_channel.send(
                 "Sorry, this command does not have a help feature yet!")
             return
 
-        await self.client.send_message(target_channel, help_text)
+        await target_channel.send(help_text)

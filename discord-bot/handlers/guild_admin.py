@@ -1,14 +1,14 @@
-''' Command handler implementing server admin functionality.
+''' Command handler implementing guild admin functionality.
 '''
 from handlers import handler_base
 
-class ServerAdminHandler(handler_base.HandlerBase):
-    """ Implement some commands for server admins to configure the bot with. """
+class GuildAdminHandler(handler_base.HandlerBase):
+    """ Implement some commands for guild admins to configure the bot with. """
     commands = ['admin']
     permission_level = handler_base.permissions_owner
 
     def __init__(self, *args, **kwargs):
-        super(ServerAdminHandler, self).__init__(*args, **kwargs)
+        super(GuildAdminHandler, self).__init__(*args, **kwargs)
 
         self._subcommand_usage_msg_map = {
             "prefix": "`!admin prefix <prefix>`",
@@ -24,11 +24,11 @@ class ServerAdminHandler(handler_base.HandlerBase):
         self.logger.debug("Handling command with args: %r", args)
         command = args[1]
 
-        # Command to allow server admins to set the command prefix
+        # Command to allow guild admins to set the command prefix
         # !admin prefix <prefix>
         if command == 'prefix':
             if len(args) > 3:
-                await self.client.send_message(context.message.channel,
+                await context.message.channel.send(
                         "Usage: `!admin prefix <prefix>`")
                 return
 
@@ -39,12 +39,12 @@ class ServerAdminHandler(handler_base.HandlerBase):
                 return
 
             if len(prefix) != 1:
-                await self.client.send_message(context.message.channel,
+                await context.message.channel.send(
                         "Command prefix must be a single character!")
                 return
 
-            context.server_data.set_command_prefix(prefix)
-            await self.client.send_message(context.message.channel,
+            context.guild_data.set_command_prefix(prefix)
+            await context.message.channel.send(
                     "Command prefix updated!")
 
         # Commands to set the permission role names.
@@ -57,18 +57,18 @@ class ServerAdminHandler(handler_base.HandlerBase):
                 role_type, role_name = None, None
 
             if not role_name or role_type not in ('member', 'officer'):
-                await self.client.send_message(context.message.channel,
+                await context.message.channel.send(
                         "Usage: `!admin role (member|officer) <channel_name>`")
                 return
 
             if role_type == 'member':
-                context.server_data.set_member_role(role_name)
-                await self.client.send_message(context.message.channel,
+                context.guild_data.set_member_role(role_name)
+                await context.message.channel.send(
                         "Member role name updated!")
 
             elif role_type == "officer":
-                context.server_data.set_officer_role(role_name)
-                await self.client.send_message(context.message.channel,
+                context.guild_data.set_officer_role(role_name)
+                await context.message.channel.send(
                         "Officer role name updated!")
 
         # Commands to set data for Twitch
@@ -80,12 +80,12 @@ class ServerAdminHandler(handler_base.HandlerBase):
                 subcommand, channel_name = None, None
 
             if not channel_name or subcommand != 'channel':
-                await self.client.send_message(context.message.channel,
+                await context.message.channel.send(
                         "Usage: `!admin twitch channel <channel_name>`")
                 return
 
-            context.server_data.set_twitch_data('channel', channel_name)
-            await self.client.send_message(context.message.channel,
+            context.guild_data.set_twitch_data('channel', channel_name)
+            await context.message.channel.send(
                 'Twitch notifications will be sent to `%s`!' % (channel_name,))
 
         # Commands to set data for Twitter
@@ -99,11 +99,10 @@ class ServerAdminHandler(handler_base.HandlerBase):
                 key, value = None, None
 
             if not value or key not in ('channel', 'listscreenname', 'listslug'):
-                await self.client.send_message(context.message.channel,
+                await context.message.channel.send(
                         "Usage: `!admin twitter (channel|listscreenname|listslug) <value>`")
                 return
 
-            context.server_data.set_twitter_data(key, value)
-            await self.client.send_message(
-                context.message.channel,
+            context.guild_data.set_twitter_data(key, value)
+            await context.message.channel.send(
                 'Twitter list key %s sent to value `%s`!' % (key, value))

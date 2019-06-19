@@ -1,7 +1,7 @@
 ''' This module defines:
-    - A ServerData class, intended to contain data related to a
-      particular Discord server;
-    - A ServerDataMap class, intended as the access point for ServerData objects.
+    - A GuildData class, intended to contain data related to a
+      particular Discord guild;
+    - A GuildDataMap class, intended as the access point for GuildData objects.
 '''
 import logging
 
@@ -17,15 +17,15 @@ member_assignable_role_names_set_key = 'member_assignable_role_names'
 
 twitch_target_channel_hash_key = 'twitch_target_channel'
 
-server_default_command_prefix = '!'
+guild_default_command_prefix = '!'
 
-def get(server):
-    """ Returns a ServerData instance for this server. """
-    if not _ServerDataMap.instance:
-        _ServerDataMap.instance = _ServerDataMap(utils.database.get())
-    return _ServerDataMap.instance.get(server)
+def get(guild):
+    """ Returns a GuildData instance for this guild. """
+    if not _GuildDataMap.instance:
+        _GuildDataMap.instance = _GuildDataMap(utils.database.get())
+    return _GuildDataMap.instance.get(guild)
 
-class _ServerDataMap(object):
+class _GuildDataMap(object):
     instance = None
 
     def __init__(self, database):
@@ -33,43 +33,43 @@ class _ServerDataMap(object):
         self.database = database
         self._map = {}
 
-    def get(self, server):
-        """ Get data associated with a server. """
-        server_id = getattr(server, "id", None)
-        if not server_id:
+    def get(self, guild):
+        """ Get data associated with a guild. """
+        guild_id = getattr(guild, "id", None)
+        if not guild_id:
             return None
-        server_data = self._map.setdefault(
-            server_id,
-            _ServerData(self.database, server))
-        return server_data
+        guild_data = self._map.setdefault(
+            guild_id,
+            _GuildData(self.database, guild))
+        return guild_data
 
-class _ServerData(object):
-    ''' Collates data about a particular Discord server from its discord object
+class _GuildData(object):
+    ''' Collates data about a particular Discord guild from its discord object
         and from our database.
     '''
-    def __init__(self, database, server):
+    def __init__(self, database, guild):
         self.logger = logging.getLogger(__name__)
         self.database = database
-        self.server = server
+        self.guild = guild
         self._hash = {}
         self._member_assignable_roles = []
         self.update()
 
     def update(self):
         ''' Ensure data consistency with the database. '''
-        self._hash = self.database.get_server_specific_hash_data(self.server.id)
-        self._member_assignable_roles = self.database.get_server_specific_set_members(
-            self.server.id, member_assignable_role_names_set_key)
+        self._hash = self.database.get_guild_specific_hash_data(self.guild.id)
+        self._member_assignable_roles = self.database.get_guild_specific_set_members(
+            self.guild.id, member_assignable_role_names_set_key)
 
     def get_member_object_from_user(self, user):
         ''' Given a User object, return a Member object if the user is in
-            the server we represent, otherwise return None.
+            the guild we represent, otherwise return None.
         '''
         # Shortcut if caller passes a Member
         if isinstance(user, discord.Member):
             return user
 
-        for member in self.server.members:
+        for member in self.guild.members:
             if member.id == user.id:
                 return member
         return None
@@ -78,12 +78,19 @@ class _ServerData(object):
         """ Return True if the user has the permissions role, False otherwise. """
         member = self.get_member_object_from_user(user)
         if not member:
+            self.logger.debug('guild._GuildData.user_has_member_permissions: '
+                              'could not get member object from user, returning False')
             return False
 
         member_role_name = self.get_member_role()
         if not member_role_name:
+            self.logger.debug('guild._GuildData.user_has_member_permissions: '
+                              'could not get member role name, returning False')
             return False
 
+        self.logger.debug('guild._GuildData.user_has_member_permissions: '
+                          'member_role_name = %r, member.roles = %r',
+                          member_role_name, member.roles)
         for role in member.roles:
             if role.name == member_role_name:
                 return True
@@ -94,21 +101,28 @@ class _ServerData(object):
         """ Return True if the user has the officer role, False otherwise. """
         member = self.get_member_object_from_user(user)
         if not member:
+            self.logger.debug('guild._GuildData.user_has_officer_permissions: '
+                              'could not get member object from user, returning False')
             return False
 
         officer_role_name = self.get_officer_role()
         if not officer_role_name:
+            self.logger.debug('guild._GuildData.user_has_officer_permissions: '
+                              'could not get officer role name, returning False')
             return False
 
+        self.logger.debug('guild._GuildData.user_has_officer_permissions: '
+                          'officer_role_name = %r, member.roles = %r',
+                          officer_role_name, member.roles)
         for role in member.roles:
             if role.name == officer_role_name:
                 return True
 
         return False
 
-    def user_is_server_owner(self, user):
-        """ Return True if the user is the server owner, False otherwise. """
-        if user.id == self.server.owner.id:
+    def user_is_guild_owner(self, user):
+        """ Return True if the user is the guild owner, False otherwise. """
+        if user.id == self.guild.owner.id:
             return True
         return False
 
@@ -117,12 +131,12 @@ class _ServerData(object):
         try:
             return self._hash[command_prefix_hash_key.encode('utf-8')].decode('utf-8')
         except Exception:
-            return server_default_command_prefix
+            return guild_default_command_prefix
 
     def set_command_prefix(self, prefix):
         """ Set the command prefix to be used for commands to the bot. """
         data = {command_prefix_hash_key: prefix}
-        self.database.set_server_specific_hash_data(self.server.id, data)
+        self.database.set_guild_specific_hash_data(self.guild.id, data)
         self.update()
 
     def get_member_role(self):
@@ -135,7 +149,7 @@ class _ServerData(object):
     def set_member_role(self, role_name):
         """ Set the name of the member permissions role. """
         data = {member_role_hash_key: role_name}
-        self.database.set_server_specific_hash_data(self.server.id, data)
+        self.database.set_guild_specific_hash_data(self.guild.id, data)
         self.update()
 
     def get_officer_role(self):
@@ -148,7 +162,7 @@ class _ServerData(object):
     def set_officer_role(self, role_name):
         """ Set the name of the officer permissions role. """
         data = {officer_role_hash_key: role_name}
-        self.database.set_server_specific_hash_data(self.server.id, data)
+        self.database.set_guild_specific_hash_data(self.guild.id, data)
         self.update()
 
     def get_twitch_data(self, key):
@@ -166,7 +180,7 @@ class _ServerData(object):
         assert value
         key = 'twitch_%s' % (key,)
         data = {key: value}
-        self.database.set_server_specific_hash_data(self.server.id, data)
+        self.database.set_guild_specific_hash_data(self.guild.id, data)
         self.update()
 
     def get_twitter_data(self, key):
@@ -184,12 +198,12 @@ class _ServerData(object):
         assert value
         key = 'twitter_%s' % (key,)
         data = {key: value}
-        self.database.set_server_specific_hash_data(self.server.id, data)
+        self.database.set_guild_specific_hash_data(self.guild.id, data)
         self.update()
 
     def get_role_from_name(self, role_name):
-        """ Return a server Role with the provided role name. """
-        for role in self.server.roles:
+        """ Return a guild Role with the provided role name. """
+        for role in self.guild.roles:
             if role.name == role_name:
                 return role
         return None
@@ -198,7 +212,7 @@ class _ServerData(object):
         ''' Given a text channel name (string), return the channel name.
             Otherwise, return None.
         '''
-        for channel in self.server.channels:
+        for channel in self.guild.channels:
             if channel.name == name and channel.type == discord.ChannelType.text:
                 return channel
         return None

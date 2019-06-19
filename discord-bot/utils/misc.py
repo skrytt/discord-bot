@@ -6,7 +6,7 @@ import traceback
 
 def get_required_bot_permissions_value():
     ''' Get a permissions value as an integer that can be inserted in a Discord URL to
-        invite a bot to a server.
+        invite a bot to a guild.
     '''
     permissions = (
         (1 << 10)   # 0x00000400 READ_MESSAGES

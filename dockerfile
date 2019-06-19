@@ -2,7 +2,7 @@ FROM python:3.6.5-stretch
 
 RUN apt-get update
 RUN apt-get install -y python3-pip
-RUN pip3 install discord==0.0.2 redis==2.10.6 jaeger_client==3.10.0
+RUN pip3 install discord.py==1.2.2 redis==2.10.6 jaeger_client==3.10.0
 
 # Bot library goes here:
 COPY discord-bot /opt/discord-bot/discord-bot

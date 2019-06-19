@@ -8,7 +8,7 @@ last_stream_notify_time_hash_key = 'last_stream_notify_time'
 stream_advertise_cooldown = 21600 # 6 hours
 
 def get(member):
-    """ Get the data associated with this server member. """
+    """ Get the data associated with this guild member. """
     if not _MemberDataMap.instance:
         _MemberDataMap.instance = _MemberDataMap()
     return _MemberDataMap.instance.get(member)
@@ -36,7 +36,7 @@ class _MemberData(object):
     def update(self):
         """ Ensure data consistency with the database. """
         self._hash = self.database.get_member_specific_hash_data(
-                self.member.server.id, self.member.id)
+                self.member.guild.id, self.member.id)
 
     def get_last_stream_notify_time(self):
         """ Return the last time this member's stream was advertised. """
@@ -51,7 +51,7 @@ class _MemberData(object):
             the cooldown period.
         """
         data = {last_stream_notify_time_hash_key: str(time.time())}
-        self.database.set_member_specific_hash_data(self.member.server.id, self.member.id, data)
+        self.database.set_member_specific_hash_data(self.member.guild.id, self.member.id, data)
         self.update()
 
     def should_advertise_stream(self):

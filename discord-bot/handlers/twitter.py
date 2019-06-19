@@ -1,5 +1,5 @@
-''' Command handler enabling server members to assign or remove roles to/from
-    themselves. The role names are configured separately by the server admin.
+''' Command handler enabling guild members to assign or remove roles to/from
+    themselves. The role names are configured separately by the guild admin.
 '''
 
 import discord
@@ -70,12 +70,11 @@ class TwitterHandler(handler_base.HandlerBase):
                 # !twitter lasttweet
                 # We'll return the result for a configured list if there is one
                 else:
-                    list_owner = context.server_data.get_twitter_data("listscreenname")
-                    list_slug = context.server_data.get_twitter_data("listslug")
+                    list_owner = context.guild_data.get_twitter_data("listscreenname")
+                    list_slug = context.guild_data.get_twitter_data("listslug")
                     if not list_owner or not list_slug:
                         self.logger.error("Could not get Twitter list data from database!")
-                        await self.client.send_message(
-                            context.message.channel,
+                        await context.message.channel.send(
                             "There was a database lookup error! Blame the owner!")
                         return
 
@@ -98,7 +97,7 @@ class TwitterHandler(handler_base.HandlerBase):
                 else:
                     response = tweet_list[0]
 
-                await self.client.send_message(context.message.channel, response)
+                await context.message.channel.send(response)
 
             # !twitter list add <screen_name>
             # !twitter list remove <screen_name>
@@ -114,19 +113,18 @@ class TwitterHandler(handler_base.HandlerBase):
                     return
 
                 # All of these commands will need to know the list owner screen name and slug
-                list_owner = context.server_data.get_twitter_data("listscreenname")
-                list_slug = context.server_data.get_twitter_data("listslug")
+                list_owner = context.guild_data.get_twitter_data("listscreenname")
+                list_slug = context.guild_data.get_twitter_data("listslug")
                 if not list_owner or not list_slug:
                     self.logger.error("Could not get Twitter list data from database!")
-                    await self.client.send_message(
-                        context.message.channel,
+                    await context.message.channel.send(
                         "There was a database lookup error! "
-                        "The server admin needs to set the data.")
+                        "The guild admin needs to set the data.")
                     return
 
                 if action == "url":
                     url = getTwitterListUrl(list_owner, list_slug)
-                    await self.client.send_message(context.message.channel, url)
+                    await context.message.channel.send(url)
 
                 elif action == "add":
                     if len(args) != 4:
@@ -152,7 +150,7 @@ class TwitterHandler(handler_base.HandlerBase):
                             error_reason = "Reason: `%s`" % (error_reason,)
                             response = " ".join([response, error_reason])
 
-                    await self.client.send_message(context.message.channel, response)
+                    await context.message.channel.send(response)
 
                 elif action == "remove":
                     if len(args) != 4:
@@ -177,7 +175,7 @@ class TwitterHandler(handler_base.HandlerBase):
                             error_reason = "Reason: `%s`" % (error_reason,)
                             response = " ".join([response, error_reason])
 
-                    await self.client.send_message(context.message.channel, response)
+                    await context.message.channel.send(response)
 
             # Help or unknown action case
             else:

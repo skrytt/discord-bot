@@ -94,14 +94,14 @@ async def on_ready():
                 discord_client.user.name, discord_client.user.id)
 
     # Schedule Twitter stuffs
-    for server in discord_client.servers:
-        logger.info('Discord client has joined the server %r', server.name)
+    for guild in discord_client.guilds:
+        logger.info('Discord client has joined the guild %r', guild.name)
 
         if twitter_scheduler:
-            # Create asyncio tasks to run the Twitter scheduler for each server that
+            # Create asyncio tasks to run the Twitter scheduler for each guild that
             # doesn't already have one running
             asyncio.get_event_loop().call_soon(
-                asyncio.ensure_future(twitter_scheduler.run(server)))
+                asyncio.ensure_future(twitter_scheduler.run(guild)))
 
 
 @discord_client.event
@@ -115,12 +115,14 @@ async def on_message(message):
         # Create contexts for request processing and tracing
         context = MessageContext(message, root_span=on_message_span)
         on_message_span.set_tag("author_name", str(context.author_name))
-        message_server = context.message.server
-        if message_server is not None:
-            on_message_span.set_tag("server_name", str(message_server.name))
+        message_guild = context.message.guild
+        if message_guild is not None:
+            on_message_span.set_tag("guild_name", str(message_guild.name))
         else:
-            on_message_span.set_tag("server_name", str(None))
-        on_message_span.set_tag("channel_name", str(context.message.channel.name))
+            on_message_span.set_tag("guild_name", str(None))
+
+        channel_name = getattr(context.message.channel, "name", "none")
+        on_message_span.set_tag("channel_name", channel_name)
 
         # Dispatch command
         await dispatcher.dispatch(context, on_message_span)
@@ -134,7 +136,7 @@ async def on_member_update(member_before, member_after):
 
 # We are set up and the Discord client hooks are defined.
 # Now run the bot..:
-logger.info("Browse to this URL to invite the bot to your server: %s",
+logger.info("Browse to this URL to invite the bot to your guild: %s",
         utils.misc.get_invite_link(bot_client_id))
 try:
     discord_client.run(bot_token)
